@@ -1,0 +1,5 @@
+type BasicProfile @createModel(accountRelation: SINGLE, description: "A basic Profile") {
+  author: DID! @documentAccount 
+  username: String! @string(minLength: 5, maxLength: 255)
+  bio: String @string(minLength: 3, maxLength: 100)
+}

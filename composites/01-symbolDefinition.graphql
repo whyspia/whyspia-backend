@@ -1,0 +1,22 @@
+type BasicProfile @loadModel(id: "$PROFILE_ID") {
+    id: ID!
+}
+
+type SymbolDefinition
+    @createModel(accountRelation: LIST, description: "A symbol definition")
+    @createIndex(fields: [{ path: "created" }])
+    @createIndex(fields: [{ path: "edited" }])
+    @createIndex(fields: [{ path: "authorId" }]) {
+
+    author: DID! @documentAccount
+    authorId: String! @string(maxLength: 100)
+
+    edited: DateTime
+    created: DateTime!
+
+    symbol: String! @string(minLength: 1, maxLength: 100000)
+    definition: String! @string(minLength: 1, maxLength: 100000)
+
+    profileId: StreamID! @documentReference(model: "BasicProfile")
+    profile: BasicProfile! @relationDocument(property: "profileId")
+}

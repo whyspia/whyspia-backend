@@ -112,3 +112,9 @@ build
 
 # TernJS port file
 .tern-port
+
+composedb.config.json
+admin_seed.txt
+composedb.config.json
+# ceramic
+/.ceramic/

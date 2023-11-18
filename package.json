@@ -1,10 +1,10 @@
 {
-  "name": "ideamarket-backend",
+  "name": "emote-backend",
   "version": "1.0.0",
-  "description": "IdeaMarket api's",
+  "description": "Emote api's",
   "main": "app.ts",
-  "repository": "https://github.com/Ideamarket/ideamarket-backend.git",
-  "author": "IdeaMarket",
+  "repository": "https://github.com/symbol-fun/symbol-backend",
+  "author": "emote",
   "license": "MIT",
   "scripts": {
     "build": "tsc",
@@ -18,13 +18,16 @@
     "check-format": "yarn prettier -- --list-different",
     "validate": "npm-run-all --parallel check-types check-format lint",
     "install:clean": "rm -rf node_modules && rm yarn.lock && yarn",
-    "prepare": "husky install"
+    "prepare": "husky install",
+
+    "generate": "node scripts/commands.mjs",
+    "ceramic": "SET CERAMIC_ENABLE_EXPERIMENTAL_COMPOSE_DB=true && ceramic daemon --config ./composedb.config.json",
+    "ceramicRun": "node scripts/run.mjs"
   },
   "dependencies": {
     "@azure/storage-blob": "^12.8.0",
     "@sendgrid/mail": "7.6.0",
     "@types/mongoose-paginate": "^5.0.11",
-    "aws-sdk": "2.1052.0",
     "axios": "0.24.0",
     "bignumber.js": "9.0.2",
     "bn.js": "5.2.0",
@@ -42,8 +45,6 @@
     "express-validator": "^6.14.0",
     "google-auth-library": "7.12.0",
     "got": "^11.8.2",
-    "graphql": "16.2.0",
-    "graphql-request": "3.7.0",
     "jsonwebtoken": "^8.5.1",
     "lodash": "^4.17.21",
     "memory-cache": "^0.2.0",
@@ -63,7 +64,20 @@
     "unique-username-generator": "1.0.1",
     "uuid": "8.3.2",
     "web3": "1.6.1",
-    "winston": "^3.3.3"
+    "winston": "^3.3.3",
+
+    "@ceramicnetwork/cli": "2.40.0",
+    "@ceramicnetwork/common": "2.33.0",
+    "@ceramicnetwork/http-client": "2.30.0",
+    "@composedb/cli": "0.5.0",
+    "@composedb/client": "0.5.0",
+    "@composedb/devtools": "0.5.0",
+    "@composedb/devtools-node": "0.5.0",
+    "@didtools/cacao": "2.0.0",
+    "@didtools/pkh-ethereum": "^0.4.1",
+    "did-session": "^2.1.1",
+    "dids": "^3.2.0",
+    "seedrandom": "^3.0.5"
   },
   "devDependencies": {
     "@commitlint/cli": "16.0.1",

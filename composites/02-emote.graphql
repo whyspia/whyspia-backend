@@ -1,0 +1,23 @@
+type BasicProfile @loadModel(id: "$PROFILE_ID") {
+    id: ID!
+}
+
+type Emote
+    @createModel(accountRelation: LIST, description: "A sent symbol")
+    @createIndex(fields: [{ path: "created" }])
+    @createIndex(fields: [{ path: "edited" }])
+    @createIndex(fields: [{ path: "authorId" }]) {
+
+    author: DID! @documentAccount
+    authorId: String! @string(maxLength: 100)
+    
+    edited: DateTime
+    created: DateTime!
+
+    symbol: String! @string(minLength: 1, maxLength: 100000)
+
+    senderUserId: StreamID! @documentReference(model: "BasicProfile")
+    senderUsername: BasicProfile! @relationDocument(property: "senderUserId")
+    receiverUserId: StreamID! @documentReference(model: "BasicProfile")
+    receiverUsername: BasicProfile! @relationDocument(property: "receiverUserId")
+}
