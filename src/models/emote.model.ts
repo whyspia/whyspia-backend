@@ -2,7 +2,7 @@ import mongoose from 'mongoose'
 
 export interface IEmote {
   senderTwitterUsername: string
-  receiverTwitterUsername: string
+  receiverSymbol: string
   symbol: string
 }
   
@@ -12,14 +12,14 @@ interface IEmoteModel extends mongoose.Model<EmoteDocument> {
 
 interface EmoteDocument extends mongoose.Document {
   senderTwitterUsername: string
-  receiverTwitterUsername: string
+  receiverSymbol: string
   symbol: string
 }
 
 const EmoteSchema = new mongoose.Schema(
   {
     senderTwitterUsername: { type: String, ref: 'UserToken', required: true },
-    receiverTwitterUsername: { type: String, ref: 'UserToken', required: true },
+    receiverSymbol: { type: String, ref: 'UserToken', required: true },
     symbol: { type: String, required: true },
   },
   {

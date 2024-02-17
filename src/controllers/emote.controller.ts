@@ -17,7 +17,7 @@ export async function createEmote(req: Request, res: Response) {
     const reqBody = req.body
     const requestData = {
       senderTwitterUsername: decodedAccount.twitterUsername,
-      receiverTwitterUsername: reqBody.receiverTwitterUsername,
+      receiverSymbol: reqBody.receiverSymbol,
       symbol: reqBody.symbol,
     }
     const emote = await createEmoteInDB(requestData)
@@ -49,7 +49,7 @@ export async function fetchAllEmotes(req: Request, res: Response) {
       (req.query.orderDirection as string | undefined) ?? 'desc'
     // const search = (req.query.search as string) || null
     const senderTwitterUsername = (req.query.senderTwitterUsername as string) || null
-    const receiverTwitterUsername = (req.query.receiverTwitterUsername as string) || null
+    const receiverSymbol = (req.query.receiverSymbol as string) || null
     const symbol = (req.query.symbol as string) || null
 
     const options: EmoteQueryOptions = {
@@ -59,7 +59,7 @@ export async function fetchAllEmotes(req: Request, res: Response) {
       orderDirection,
       // search,
       senderTwitterUsername,
-      receiverTwitterUsername,
+      receiverSymbol,
       symbol,
     }
 

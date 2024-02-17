@@ -20,7 +20,7 @@ export async function createEmoteInDB(emoteData: Partial<EmoteRequest>): Promise
   try {
     const emoteBuildData = {
       senderTwitterUsername: emoteData.senderTwitterUsername as string,
-      receiverTwitterUsername: emoteData.receiverTwitterUsername as string,
+      receiverSymbol: emoteData.receiverSymbol as string,
       symbol: emoteData?.symbol?.toLowerCase() as string,
     }
     const emoteDoc = EmoteModel.build(emoteBuildData)
@@ -30,6 +30,10 @@ export async function createEmoteInDB(emoteData: Partial<EmoteRequest>): Promise
     console.error('Error occurred while creating emote in DB', error)
     throw new InternalServerError('Failed to create emote in DB')
   }
+
+  // sudo code
+  // if receiverSymbol is X user, then do notification stuff. Otherwise, no need (although will be need for autonomous agents at some point probably)
+
 }
 
 // export async function fetchEmoteFromDB(EmoteId: string): Promise<EmoteResponse | null> {
@@ -47,7 +51,7 @@ export async function fetchAllEmotesFromDB(
 ): Promise<EmoteResponse[]> {
   try {
 
-    const { skip, limit, orderBy, senderTwitterUsername, receiverTwitterUsername, symbol } = options
+    const { skip, limit, orderBy, senderTwitterUsername, receiverSymbol, symbol } = options
     const orderDirection = options.orderDirection === 'asc' ? 1 : -1
 
     // Sorting Options
@@ -65,10 +69,10 @@ export async function fetchAllEmotesFromDB(
         ],
       })
     }
-    if (receiverTwitterUsername) {
+    if (receiverSymbol) {
       filterOptions.push({
         $or: [
-          { receiverTwitterUsername: { $regex: new RegExp("^" + receiverTwitterUsername + "$", 'iu') } },
+          { receiverSymbol: { $regex: new RegExp("^" + receiverSymbol + "$", 'iu') } },
         ],
       })
     }

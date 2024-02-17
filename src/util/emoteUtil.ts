@@ -11,7 +11,7 @@ export function mapEmoteResponse(
   return {
     id: emoteDoc._id.toString(),
     senderTwitterUsername: emoteDoc.senderTwitterUsername,
-    receiverTwitterUsername: emoteDoc.receiverTwitterUsername,
+    receiverSymbol: emoteDoc.receiverSymbol,
     symbol: emoteDoc.symbol,
     timestamp: (emoteDoc as any).createdAt,
   }

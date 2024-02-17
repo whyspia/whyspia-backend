@@ -5,10 +5,10 @@ export const createEmoteValidation = [
   //   .notEmpty()
   //   .isString()
   //   .withMessage('senderUserTokenID is not valid or null/empty'),
-  body('receiverTwitterUsername')
+  body('receiverSymbol')
     .notEmpty()
     .isString()
-    .withMessage('receiverTwitterUsername is not valid or null/empty'),
+    .withMessage('receiverSymbol is not valid or null/empty'),
   body('symbol')
     .notEmpty()
     .isString()
