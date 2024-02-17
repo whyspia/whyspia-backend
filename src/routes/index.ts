@@ -6,6 +6,7 @@ import { userTokenRouter } from './user-token'
 import { symbolRouter } from './symbol'
 import { symbolDefinitionRouter } from './symbol-definition'
 import { emoteRouter } from './emote'
+import { emoteNotifRouter } from './emote-notif'
 
 const routes = Router()
 
@@ -16,5 +17,6 @@ routes.use('/user-token', userTokenRouter)
 routes.use('/symbol', symbolRouter)
 routes.use('/symbol-definition', symbolDefinitionRouter)
 routes.use('/emote', emoteRouter)
+routes.use('/emote-notif', emoteNotifRouter)
 
 export { routes }

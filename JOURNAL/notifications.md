@@ -6,4 +6,5 @@ thoughts while brainstorming how to do notifications
     - what about if symbol is sent that user follows? this made me realize i dont think follows are needed - at least in beginning
     - instead of follows, there will be notification button on symbol of user where you can change how you receive that symbol from that user. default is to receive all. Really this would just be setting in DB that controls frontend UX - but no data storage of notifs is really changing.
     - i guess ill do notification viewed functionality same way X does it. Something about it i dont like, but seems easiest
+    - for now, this notification table will only store notifs for emotes. one day there will be notifs for other things to. maybe ill name emotenotif then to prepare
     
