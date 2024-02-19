@@ -7,4 +7,9 @@ thoughts while brainstorming how to do notifications
     - instead of follows, there will be notification button on symbol of user where you can change how you receive that symbol from that user. default is to receive all. Really this would just be setting in DB that controls frontend UX - but no data storage of notifs is really changing.
     - i guess ill do notification viewed functionality same way X does it. Something about it i dont like, but seems easiest
     - for now, this notification table will only store notifs for emotes. one day there will be notifs for other things to. maybe ill name emotenotif then to prepare
-    
+  - [[February 18th, 2024]]
+    - i pondered on if notif should really be sent out with every emote with receiverSymbol that is any potential X user - and i think i resolved to yes. Bc otherwise there will be no way for the user to mark each received symbol as directlySeen or casuallySeen either - which could be a fun aspect - especially the direct one imo
+    - the main other option is to only send out if user has logged in at least once to Emote or done at least one action on Emote - but then all their past emotes will not have any notifications for marking SEEN or na
+    - kinda makes me wonder if hasReadCasually and hasReadDirectly could be on the EMOTE itself. I dont really see any reason why not but also it's late and about to fall asleep so brain no work - and intuition says daz not da way. Maybe because then you'd be updating Emotes and im uncertain i wanna do that or na - even if just a few fields.
+  - [[February 19th, 2024]]
+    - gonna write some notes on follows: will document there even tho relavent here

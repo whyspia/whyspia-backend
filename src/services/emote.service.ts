@@ -8,6 +8,7 @@ import { InternalServerError } from './errors'
 import { mapEmoteResponse } from '../util/emoteUtil'
 import escapeStringRegexp from 'escape-string-regexp'
 import { createSymbolInDB, fetchAllSymbolsFromDB } from './symbol.service'
+import { createEmoteNotifInDB } from './emote-notif.service'
 
 export async function createEmoteInDB(emoteData: Partial<EmoteRequest>): Promise<EmoteResponse | null> {
   // Check if symbol exists
@@ -25,14 +26,19 @@ export async function createEmoteInDB(emoteData: Partial<EmoteRequest>): Promise
     }
     const emoteDoc = EmoteModel.build(emoteBuildData)
     const createdEmote = await EmoteModel.create(emoteDoc)
+
+    // if receiverSymbol is X user, then do notification stuff. Otherwise, no need (although will be need for autonomous agents at some point probably)
+    const pattern = /^@?(\w){1,15}$/
+    const isPossibleXUser = pattern.test(emoteData.receiverSymbol as string)
+    if (isPossibleXUser) {
+      await createEmoteNotifInDB({ emoteID: createdEmote._id.toString() })
+    }
+
     return mapEmoteResponse(createdEmote)
   } catch (error) {
     console.error('Error occurred while creating emote in DB', error)
     throw new InternalServerError('Failed to create emote in DB')
   }
-
-  // sudo code
-  // if receiverSymbol is X user, then do notification stuff. Otherwise, no need (although will be need for autonomous agents at some point probably)
 
 }
 
