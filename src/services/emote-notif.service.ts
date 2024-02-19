@@ -8,6 +8,7 @@ import { InternalServerError } from './errors'
 import { mapEmoteNotifResponse } from '../util/emoteNotifUtil'
 import escapeStringRegexp from 'escape-string-regexp'
 import { createSymbolInDB, fetchAllSymbolsFromDB } from './symbol.service'
+import { DECODED_ACCOUNT } from '../util/jwtTokenUtil'
 
 export async function createEmoteNotifInDB(emoteNotifData: Partial<EmoteNotifRequest>): Promise<EmoteNotifResponse | null> {
   try {
@@ -27,7 +28,8 @@ export async function createEmoteNotifInDB(emoteNotifData: Partial<EmoteNotifReq
 }
 
 export async function fetchAllEmoteNotifsFromDB(
-  options: EmoteNotifQueryOptions
+  options: EmoteNotifQueryOptions,
+  decodedAccount: DECODED_ACCOUNT
 ): Promise<EmoteNotifResponse[]> {
   try {
 
@@ -48,11 +50,29 @@ export async function fetchAllEmoteNotifsFromDB(
       filterQuery = { $and: filterOptions }
     }
 
-    const emoteNotifDocs: EmoteNotifDocument[] = await EmoteNotifModel
-      .find(filterQuery)
-      .sort(sortOptions)
-      .skip(skip)
-      .limit(limit)
+    const emoteNotifDocs = await EmoteNotifModel.aggregate([
+      {
+        $addFields: {
+          convertedEmoteID: { $toObjectId: "$emoteID" } // Convert emoteID from string to ObjectId
+        }
+      },
+      {
+        $lookup: {
+          from: 'emotes', // the collection to join
+          localField: 'convertedEmoteID', // field from the input documents
+          foreignField: '_id', // field from the documents of the "from" collection
+          as: 'emoteData' // output array field
+        }
+      },
+      {
+        $unwind: '$emoteData' // makes emoteData not an array with 1 element - instead returns that 1 element
+      },
+      {
+        $match: {
+          'emoteData.receiverSymbol': decodedAccount.twitterUsername, // this makes sure that YOU only get YOUR notifications
+        }
+      }
+    ])
 
     return emoteNotifDocs.map((doc) => mapEmoteNotifResponse(doc) as EmoteNotifResponse)
   } catch (error) {

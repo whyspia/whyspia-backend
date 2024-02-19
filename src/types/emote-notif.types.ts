@@ -1,3 +1,5 @@
+import { EmoteResponse } from "./emote.types"
+
 export type EmoteNotifRequest = {
   id: string
   emoteID: string
@@ -8,7 +10,7 @@ export type EmoteNotifRequest = {
 
 export type EmoteNotifResponse = {
   id: string
-  emoteID: string
+  emoteData: EmoteResponse
   hasReadCasually: boolean
   hasReadDirectly: boolean
   timestamp: Date

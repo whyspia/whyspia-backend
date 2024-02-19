@@ -31,10 +31,12 @@ export const updateEmoteNotifsValidation = [
     .notEmpty()
     .isString()
     .withMessage('emoteNotifIDs is not valid or null/empty'),
-  body('isCasualRead')
+  body('isCasualOrDirect')
     .notEmpty()
-    .isBoolean()
-    .withMessage('isCasualRead is not valid or null/empty'),
+    .isString()
+    .withMessage('isCasualOrDirect is not valid or null/empty')
+    .isIn(['casual', 'direct'])
+    .withMessage('isCasualOrDirect must be either "casual" or "direct"'),
 ]
 
 // export const deleteEmoteValidation = [

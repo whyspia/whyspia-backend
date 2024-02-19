@@ -10,7 +10,7 @@ export function mapEmoteNotifResponse(
 
   return {
     id: emoteNotifDoc._id.toString(),
-    emoteID: emoteNotifDoc.emoteID,
+    emoteData: (emoteNotifDoc as any).emoteData,
     hasReadCasually: emoteNotifDoc.hasReadCasually,
     hasReadDirectly: emoteNotifDoc.hasReadDirectly,
     timestamp: (emoteNotifDoc as any).createdAt,

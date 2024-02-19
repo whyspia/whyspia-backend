@@ -26,6 +26,7 @@ export async function createEmoteNotif(req: Request, res: Response) {
 
 export async function fetchAllEmoteNotifs(req: Request, res: Response) {
   try {
+    const decodedAccount = (req as any).decodedAccount as DECODED_ACCOUNT
     const skip = Number.parseInt(req.query.skip as string) || 0
     const limit = Number.parseInt(req.query.limit as string) || 10
     const orderBy = req.query.orderBy as keyof EmoteNotifResponse
@@ -39,7 +40,7 @@ export async function fetchAllEmoteNotifs(req: Request, res: Response) {
       orderDirection,
     }
 
-    const emoteNotifs = await fetchAllEmoteNotifsFromDB(options)
+    const emoteNotifs = await fetchAllEmoteNotifsFromDB(options, decodedAccount)
     return handleSuccess(res, { emoteNotifs })
   } catch (error) {
     console.error('Error occurred while fetching all emoteNotifs', error)
@@ -54,8 +55,9 @@ export async function updateEmoteNotif(req: Request, res: Response) {
   try {
     const emoteNotifIDs =
       (req.body.emoteNotifIDs as string | undefined)?.split(',') ?? []
-      // it will either be a casual read OR direct read
-    const isCasualRead = req.body.isCasualRead as boolean
+    // it will either be string 'casual' or 'direct'
+    // isCasualRead is boolean version of that
+    const isCasualRead = req.body.isCasualOrDirect === 'casual'
     const updatedEmoteNotifs = await updateEmoteNotifsInDB(emoteNotifIDs, isCasualRead)
     return handleSuccess(res, { updatedEmoteNotifs })
   } catch (error) {
