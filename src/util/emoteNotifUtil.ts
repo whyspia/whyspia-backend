@@ -1,16 +1,18 @@
 import type { EmoteNotifDocument } from '../models/emote-notif.model'
-import type { EmoteNotifResponse } from '../types/emote-notif.types'
+import type { EmoteNotifResponse, EmoteNotifSingleResponse } from '../types/emote-notif.types'
+import { mapEmoteResponse } from './emoteUtil'
 
 export function mapEmoteNotifResponse(
   emoteNotifDoc: EmoteNotifDocument
-): EmoteNotifResponse {
+): EmoteNotifSingleResponse {
   // if (!emoteNotifDoc) {
   //   return null
   // }
 
   return {
     id: emoteNotifDoc._id.toString(),
-    emoteData: (emoteNotifDoc as any).emoteData,
+    emoteData: mapEmoteResponse((emoteNotifDoc as any).emoteData),
+    receiverSymbol: emoteNotifDoc.receiverSymbol,
     hasReadCasually: emoteNotifDoc.hasReadCasually,
     hasReadDirectly: emoteNotifDoc.hasReadDirectly,
     timestamp: (emoteNotifDoc as any).createdAt,

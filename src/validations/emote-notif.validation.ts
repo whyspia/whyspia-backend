@@ -37,6 +37,10 @@ export const updateEmoteNotifsValidation = [
     .withMessage('isCasualOrDirect is not valid or null/empty')
     .isIn(['casual', 'direct'])
     .withMessage('isCasualOrDirect must be either "casual" or "direct"'),
+  body('isMarkingUnread')
+    .notEmpty()
+    .isBoolean()
+    .withMessage('isMarkingUnread is not valid or null/empty'),
 ]
 
 // export const deleteEmoteValidation = [

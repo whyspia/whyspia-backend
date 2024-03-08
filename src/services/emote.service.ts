@@ -21,18 +21,26 @@ export async function createEmoteInDB(emoteData: Partial<EmoteRequest>): Promise
   try {
     const emoteBuildData = {
       senderTwitterUsername: emoteData.senderTwitterUsername as string,
-      receiverSymbol: emoteData.receiverSymbol as string,
+      receiverSymbols: emoteData.receiverSymbols as string[],
       symbol: emoteData?.symbol?.toLowerCase() as string,
     }
     const emoteDoc = EmoteModel.build(emoteBuildData)
     const createdEmote = await EmoteModel.create(emoteDoc)
 
-    // if receiverSymbol is X user, then do notification stuff. Otherwise, no need (although will be need for autonomous agents at some point probably)
+    // if one of receiverSymbol is X user, then do notification stuff. Otherwise, no need (although will be need for autonomous agents at some point probably)
+    // const pattern = /^@?(\w){1,15}$/
+    // const isPossibleXUser = pattern.test(emoteData.receiverSymbol as string)
+    // if (isPossibleXUser) {
+    //   await createEmoteNotifInDB({ emoteID: createdEmote._id.toString() })
+    // }
+
     const pattern = /^@?(\w){1,15}$/
-    const isPossibleXUser = pattern.test(emoteData.receiverSymbol as string)
-    if (isPossibleXUser) {
-      await createEmoteNotifInDB({ emoteID: createdEmote._id.toString() })
-    }
+    emoteData.receiverSymbols?.forEach(async (receiverSymbol) => {
+      const isPossibleXUser = pattern.test(receiverSymbol)
+      if (isPossibleXUser) {
+        await createEmoteNotifInDB({ emoteID: createdEmote._id.toString(), receiverSymbol })
+      }
+    })
 
     return mapEmoteResponse(createdEmote)
   } catch (error) {
@@ -57,7 +65,7 @@ export async function fetchAllEmotesFromDB(
 ): Promise<EmoteResponse[]> {
   try {
 
-    const { skip, limit, orderBy, senderTwitterUsername, receiverSymbol, symbol } = options
+    const { skip, limit, orderBy, senderTwitterUsername, receiverSymbols, symbol } = options
     const orderDirection = options.orderDirection === 'asc' ? 1 : -1
 
     // Sorting Options
@@ -75,13 +83,23 @@ export async function fetchAllEmotesFromDB(
         ],
       })
     }
-    if (receiverSymbol) {
+
+    // TODO: test the crap out dis - it confuse me
+    // decision: if multiple symbols in receiverSymbols, then each returned Emote must have receiverSymbols field that contains all requested. So what i mean is that it wont return Emotes with just the first receiverSymbol - it has to be ALL in the list
+    if (receiverSymbols && receiverSymbols?.length > 0) {
+      // filterOptions.push({
+      //   $or: [
+      //     { receiverSymbol: { $regex: new RegExp("^" + receiverSymbol + "$", 'iu') } },
+      //   ],
+      // })
+      const regexOrConditions = receiverSymbols.map(symbol => ({
+        receiverSymbols: { $regex: new RegExp("^" + escapeStringRegexp(symbol) + "$", 'iu') }
+      }));
       filterOptions.push({
-        $or: [
-          { receiverSymbol: { $regex: new RegExp("^" + receiverSymbol + "$", 'iu') } },
-        ],
+        $and: regexOrConditions,  // the AND is what enforces the decision above. OR will be different functionality
       })
     }
+
     if (symbol) {
       filterOptions.push({
         $or: [

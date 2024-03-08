@@ -40,8 +40,8 @@ export async function fetchAllEmoteNotifs(req: Request, res: Response) {
       orderDirection,
     }
 
-    const emoteNotifs = await fetchAllEmoteNotifsFromDB(options, decodedAccount)
-    return handleSuccess(res, { emoteNotifs })
+    const { emoteNotifs, hasReadCasuallyFalseCount, hasReadDirectlyFalseCount } = await fetchAllEmoteNotifsFromDB(options, decodedAccount)
+    return handleSuccess(res, { emoteNotifs, hasReadCasuallyFalseCount, hasReadDirectlyFalseCount })
   } catch (error) {
     console.error('Error occurred while fetching all emoteNotifs', error)
     return handleError(res, error, 'Unable to fetch all emoteNotifs')
@@ -58,7 +58,8 @@ export async function updateEmoteNotif(req: Request, res: Response) {
     // it will either be string 'casual' or 'direct'
     // isCasualRead is boolean version of that
     const isCasualRead = req.body.isCasualOrDirect === 'casual'
-    const updatedEmoteNotifs = await updateEmoteNotifsInDB(emoteNotifIDs, isCasualRead)
+    const isMarkingUnread = req.body.isMarkingUnread
+    const updatedEmoteNotifs = await updateEmoteNotifsInDB(emoteNotifIDs, isCasualRead, isMarkingUnread)
     return handleSuccess(res, { updatedEmoteNotifs })
   } catch (error) {
     console.error('Error occurred while updating emote notifs', error)

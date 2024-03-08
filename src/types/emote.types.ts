@@ -3,7 +3,7 @@ import { UserTokenResponse } from "./user-token.types"
 export type EmoteRequest = {
   id: string
   senderTwitterUsername: string
-  receiverSymbol: string
+  receiverSymbols: string[]
   symbol: string
   timestamp: Date
 }
@@ -11,7 +11,7 @@ export type EmoteRequest = {
 export type EmoteResponse = {
   id: string
   senderTwitterUsername: string
-  receiverSymbol: string
+  receiverSymbols: string[]
   symbol: string
   timestamp: Date
 }
@@ -22,6 +22,6 @@ export type EmoteQueryOptions = {
   orderBy: keyof EmoteResponse
   orderDirection: string
   senderTwitterUsername: string | null
-  receiverSymbol: string | null
+  receiverSymbols: string[] | null
   symbol: string | null
 }

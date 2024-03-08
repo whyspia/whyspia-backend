@@ -3,17 +3,25 @@ import { EmoteResponse } from "./emote.types"
 export type EmoteNotifRequest = {
   id: string
   emoteID: string
+  receiverSymbol: string
+  hasReadCasually: boolean
+  hasReadDirectly: boolean
+  timestamp: Date
+}
+
+export type EmoteNotifSingleResponse = {
+  id: string
+  emoteData: EmoteResponse | null
+  receiverSymbol: string
   hasReadCasually: boolean
   hasReadDirectly: boolean
   timestamp: Date
 }
 
 export type EmoteNotifResponse = {
-  id: string
-  emoteData: EmoteResponse
-  hasReadCasually: boolean
-  hasReadDirectly: boolean
-  timestamp: Date
+  emoteNotifs: EmoteNotifSingleResponse[]
+  hasReadCasuallyFalseCount: number
+  hasReadDirectlyFalseCount: number
 }
 
 export type EmoteNotifQueryOptions = {

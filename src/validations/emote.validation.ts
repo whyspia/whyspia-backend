@@ -5,10 +5,10 @@ export const createEmoteValidation = [
   //   .notEmpty()
   //   .isString()
   //   .withMessage('senderUserTokenID is not valid or null/empty'),
-  body('receiverSymbol')
+  body('receiverSymbols')
     .notEmpty()
     .isString()
-    .withMessage('receiverSymbol is not valid or null/empty'),
+    .withMessage('receiverSymbols is not valid or null/empty'),
   body('symbol')
     .notEmpty()
     .isString()
