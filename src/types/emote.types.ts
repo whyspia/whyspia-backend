@@ -4,7 +4,7 @@ export type EmoteRequest = {
   id: string
   senderTwitterUsername: string
   receiverSymbols: string[]
-  symbol: string
+  sentSymbols: string[]
   timestamp: Date
 }
 
@@ -12,7 +12,7 @@ export type EmoteResponse = {
   id: string
   senderTwitterUsername: string
   receiverSymbols: string[]
-  symbol: string
+  sentSymbols: string[]
   timestamp: Date
 }
 
@@ -23,5 +23,5 @@ export type EmoteQueryOptions = {
   orderDirection: string
   senderTwitterUsername: string | null
   receiverSymbols: string[] | null
-  symbol: string | null
+  sentSymbols: string[] | null
 }

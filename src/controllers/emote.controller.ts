@@ -16,10 +16,11 @@ export async function createEmote(req: Request, res: Response) {
     const decodedAccount = (req as any).decodedAccount as DECODED_ACCOUNT
     const reqBody = req.body
     const receiverSymbols = (reqBody.receiverSymbols as string | undefined)?.split(',') ?? []
+    const sentSymbols = (reqBody.sentSymbols as string | undefined)?.split(',') ?? []
     const requestData = {
       senderTwitterUsername: decodedAccount.twitterUsername,
       receiverSymbols,
-      symbol: reqBody.symbol,
+      sentSymbols,
     }
     const emote = await createEmoteInDB(requestData)
     return handleSuccess(res, { emote })
@@ -51,7 +52,7 @@ export async function fetchAllEmotes(req: Request, res: Response) {
     // const search = (req.query.search as string) || null
     const senderTwitterUsername = (req.query.senderTwitterUsername as string) || null
     const receiverSymbols = req.query.receiverSymbols && req.query.receiverSymbols !== '' ? (req.query.receiverSymbols as string | undefined)?.split(',') as any : []
-    const symbol = (req.query.symbol as string) || null
+    const sentSymbols = req.query.sentSymbols && req.query.sentSymbols !== '' ? (req.query.sentSymbols as string | undefined)?.split(',') as any : []
 
     const options: EmoteQueryOptions = {
       skip,
@@ -61,7 +62,7 @@ export async function fetchAllEmotes(req: Request, res: Response) {
       // search,
       senderTwitterUsername,
       receiverSymbols,
-      symbol,
+      sentSymbols,
     }
 
     const emotes = await fetchAllEmotesFromDB(options)

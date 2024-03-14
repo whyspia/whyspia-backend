@@ -11,18 +11,25 @@ import { createSymbolInDB, fetchAllSymbolsFromDB } from './symbol.service'
 import { createEmoteNotifInDB } from './emote-notif.service'
 
 export async function createEmoteInDB(emoteData: Partial<EmoteRequest>): Promise<EmoteResponse | null> {
-  // Check if symbol exists
-  const symbols = await fetchAllSymbolsFromDB({ search: emoteData.symbol } as any)
-  if (symbols?.length === 0) {
-    // Create the symbol if it does not exist
-    await createSymbolInDB({ name: emoteData?.symbol?.toLowerCase() });
+  if (!emoteData.sentSymbols || emoteData.sentSymbols.length === 0) {
+    console.error('No sentSymbols provided')
+    throw new InternalServerError('No sentSymbols provided')
+  }
+
+  for (const sentSymbol of emoteData.sentSymbols) {
+    // Check if sentSymbol exists
+    const symbols = await fetchAllSymbolsFromDB({ search: sentSymbol } as any)
+    if (symbols?.length === 0) {
+      // Create the sentSymbol if it does not exist
+      await createSymbolInDB({ name: sentSymbol.toLowerCase() })
+    }
   }
 
   try {
     const emoteBuildData = {
       senderTwitterUsername: emoteData.senderTwitterUsername as string,
       receiverSymbols: emoteData.receiverSymbols as string[],
-      symbol: emoteData?.symbol?.toLowerCase() as string,
+      sentSymbols: emoteData?.sentSymbols as string[],
     }
     const emoteDoc = EmoteModel.build(emoteBuildData)
     const createdEmote = await EmoteModel.create(emoteDoc)
@@ -65,7 +72,7 @@ export async function fetchAllEmotesFromDB(
 ): Promise<EmoteResponse[]> {
   try {
 
-    const { skip, limit, orderBy, senderTwitterUsername, receiverSymbols, symbol } = options
+    const { skip, limit, orderBy, senderTwitterUsername, receiverSymbols, sentSymbols } = options
     const orderDirection = options.orderDirection === 'asc' ? 1 : -1
 
     // Sorting Options
@@ -85,7 +92,7 @@ export async function fetchAllEmotesFromDB(
     }
 
     // TODO: test the crap out dis - it confuse me
-    // decision: if multiple symbols in receiverSymbols, then each returned Emote must have receiverSymbols field that contains all requested. So what i mean is that it wont return Emotes with just the first receiverSymbol - it has to be ALL in the list
+    // decision: if multiple symbols in receiverSymbols, then each returned Emote must have receiverSymbols field that contains all requested. So what i mean is that it wont return Emotes with just the first receiverSymbol - it has to be ALL in the list. BUT, it also accepts extras in sentSymbols too AS LONG as it has ALL requested sentSymbols.
     if (receiverSymbols && receiverSymbols?.length > 0) {
       // filterOptions.push({
       //   $or: [
@@ -100,11 +107,15 @@ export async function fetchAllEmotesFromDB(
       })
     }
 
-    if (symbol) {
+
+    // TODO: test the crap out dis - it confuse me
+    // decision: if multiple symbols in sentSymbols, then each returned Emote must have sentSymbols field that contains all requested. So what i mean is that it wont return Emotes with just the first receiverSymbol - it has to be ALL in the list. BUT, it also accepts extras in sentSymbols too AS LONG as it has ALL requested sentSymbols.
+    if (sentSymbols && sentSymbols?.length > 0) {
+      const regexOrConditions = sentSymbols.map(sentSymbol => ({
+        sentSymbols: { $regex: new RegExp("^" + escapeStringRegexp(sentSymbol) + "$", 'iu') }
+      }));
       filterOptions.push({
-        $or: [
-          { symbol: { $regex: new RegExp("^" + symbol + "$", 'iu') } },
-        ],
+        $and: regexOrConditions,  // the AND is what enforces the decision above. OR will be different functionality
       })
     }
 

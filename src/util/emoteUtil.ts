@@ -12,7 +12,7 @@ export function mapEmoteResponse(
     id: emoteDoc._id.toString(),
     senderTwitterUsername: emoteDoc.senderTwitterUsername,
     receiverSymbols: emoteDoc.receiverSymbols,
-    symbol: emoteDoc.symbol,
+    sentSymbols: emoteDoc.sentSymbols,
     timestamp: (emoteDoc as any).createdAt,
   }
 }

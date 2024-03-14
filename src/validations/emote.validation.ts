@@ -9,10 +9,10 @@ export const createEmoteValidation = [
     .notEmpty()
     .isString()
     .withMessage('receiverSymbols is not valid or null/empty'),
-  body('symbol')
+  body('sentSymbols')
     .notEmpty()
     .isString()
-    .withMessage('symbol is not valid or null/empty'),
+    .withMessage('sentSymbols is not valid or null/empty'),
 ]
 
 export const fetchEmoteValidation = [
