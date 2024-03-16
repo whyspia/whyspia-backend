@@ -3,6 +3,7 @@ import { authenticateAndSetAccount } from '../middleware'
 
 import {
   fetchAllEmoteNotifs,
+  fetchAndUpdateAllEmoteNotifs,
   updateEmoteNotif,
 } from '../controllers/emote-notif.controller'
 import { validateRequest } from '../middleware/validateRequest'
@@ -27,5 +28,13 @@ emoteNotifRouter.put(
   validateRequest,
   authenticateAndSetAccount,
   updateEmoteNotif
+)
+
+emoteNotifRouter.put(
+  '/fetchAndUpdate',
+  fetchAllEmoteNotifsValidation,
+  validateRequest,
+  authenticateAndSetAccount,
+  fetchAndUpdateAllEmoteNotifs
 )
 

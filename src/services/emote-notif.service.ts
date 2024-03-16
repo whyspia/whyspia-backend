@@ -91,10 +91,10 @@ export async function fetchAllEmoteNotifsFromDB(
           ]
         }
       }
-    ])
-    .sort(sortOptions)
-    .skip(skip)
-    .limit(limit)
+    ]) as any
+    // .sort(sortOptions)
+    // .skip(skip)
+    // .limit(limit)
 
     const emoteNotifs = emoteNotifDocs?.documents?.map((doc: EmoteNotifDocument) => mapEmoteNotifResponse(doc) as EmoteNotifSingleResponse)
     const hasReadCasuallyFalseCount = emoteNotifDocs.hasReadCasuallyFalseCount.length > 0 ? emoteNotifDocs.hasReadCasuallyFalseCount[0].count : 0;
@@ -107,7 +107,12 @@ export async function fetchAllEmoteNotifsFromDB(
   }
 }
 
-export async function updateEmoteNotifsInDB(emoteNotifIDs: string[], isCasualRead: boolean, isMarkingUnread: boolean): Promise<EmoteNotifSingleResponse[]> {
+export async function updateEmoteNotifsInDB(
+  emoteNotifIDs: string[],
+  isCasualRead: boolean,
+  isMarkingUnread: boolean,
+  decodedAccount: DECODED_ACCOUNT
+): Promise<Partial<EmoteNotifResponse>> {
   try {
     let setterObj = {}
 
@@ -132,10 +137,146 @@ export async function updateEmoteNotifsInDB(emoteNotifIDs: string[], isCasualRea
     )
 
     const updatedEmoteNotifDocs = await Promise.all(updatePromises)
-    return updatedEmoteNotifDocs.map((doc: any) => mapEmoteNotifResponse(doc))
+
+    const [emoteNotifDocs] = await EmoteNotifModel.aggregate([
+      {
+        $match: {
+          receiverSymbol: decodedAccount.twitterUsername, // this makes sure that YOU only get YOUR notifications
+        }
+      },
+      {
+        $facet: {
+          hasReadCasuallyFalseCount: [
+            { $match: { hasReadCasually: false } },
+            { $count: "count" }
+          ],
+          hasReadDirectlyFalseCount: [
+            { $match: { hasReadDirectly: false } },
+            { $count: "count" }
+          ]
+        }
+      }
+    ])
+
+    // const emoteNotifs = emoteNotifDocs?.documents?.map((doc: EmoteNotifDocument) => mapEmoteNotifResponse(doc) as EmoteNotifSingleResponse)
+    const hasReadCasuallyFalseCount = emoteNotifDocs.hasReadCasuallyFalseCount.length > 0 ? emoteNotifDocs.hasReadCasuallyFalseCount[0].count : 0;
+    const hasReadDirectlyFalseCount = emoteNotifDocs.hasReadDirectlyFalseCount.length > 0 ? emoteNotifDocs.hasReadDirectlyFalseCount[0].count : 0;
+
+    // return updatedEmoteNotifDocs.map((doc: any) => mapEmoteNotifResponse(doc))
+    return { hasReadCasuallyFalseCount, hasReadDirectlyFalseCount  }
   } catch (error) {
     console.error('Error occurred while updating EmoteNotifs in DB', error)
     throw new InternalServerError('Failed to update EmoteNotifs in DB')
+  }
+}
+
+export async function fetchAndUpdateAllEmoteNotifsInDB(
+  options: EmoteNotifQueryOptions,
+  decodedAccount: DECODED_ACCOUNT
+): Promise<Partial<EmoteNotifResponse>> {
+  try {
+    // Fetching part similar to fetchAllEmoteNotifsFromDB
+    const { skip, limit, orderBy } = options
+    const orderDirection = options.orderDirection === 'asc' ? 1 : -1
+
+    const sortOptions: any = {}
+    sortOptions[orderBy] = orderDirection
+    sortOptions._id = 1
+
+    const filterOptions: FilterQuery<EmoteNotifDocument>[] = []
+
+    let filterQuery = {}
+    if (filterOptions.length > 0) {
+      filterQuery = { $and: filterOptions }
+    }
+
+    const [emoteNotifDocs] = await EmoteNotifModel.aggregate([
+      {
+        $addFields: {
+          convertedEmoteID: { $toObjectId: "$emoteID" }
+        }
+      },
+      {
+        $lookup: {
+          from: 'emotes',
+          localField: 'convertedEmoteID',
+          foreignField: '_id',
+          as: 'emoteData'
+        }
+      },
+      {
+        $unwind: '$emoteData'
+      },
+      {
+        $match: {
+          receiverSymbol: decodedAccount.twitterUsername,
+        }
+      },
+      {
+        $facet: {
+          documents: [
+            { $sort: sortOptions },
+            { $skip: skip },
+            { $limit: limit }
+          ],
+          hasReadCasuallyFalseCount: [
+            { $match: { hasReadCasually: false } },
+            { $count: "count" }
+          ],
+          hasReadDirectlyFalseCount: [
+            { $match: { hasReadDirectly: false } },
+            { $count: "count" }
+          ]
+        }
+      }
+    ]) as any
+
+    // Update part similar to updateEmoteNotifsInDB
+    const emoteNotifIDs = emoteNotifDocs.documents.map((doc: any) => doc._id)
+    const setterObj = { $set: { hasReadCasually: true } }
+
+    // TODO: maybe make so only updates notifs with hasReadCasually is false - i think currently it just does all in the paginated list fetched
+
+    const updatePromises = emoteNotifIDs.map((emoteNotifID: any) =>
+      EmoteNotifModel.findByIdAndUpdate(
+        emoteNotifID,
+        setterObj,
+        { new: true }
+      ).exec()
+    )
+
+    await Promise.all(updatePromises)
+
+    // Re-fetching the counts after update. Since we only update paginated, the casual counts arent necessarily gonna be 0
+    const [updatedEmoteNotifDocs] = await EmoteNotifModel.aggregate([
+      {
+        $match: {
+          receiverSymbol: decodedAccount.twitterUsername,
+        }
+      },
+      {
+        $facet: {
+          hasReadCasuallyFalseCount: [
+            { $match: { hasReadCasually: false } },
+            { $count: "count" }
+          ],
+          hasReadDirectlyFalseCount: [
+            { $match: { hasReadDirectly: false } },
+            { $count: "count" }
+          ]
+        }
+      }
+    ])
+
+    const hasReadCasuallyFalseCount = updatedEmoteNotifDocs.hasReadCasuallyFalseCount.length > 0 ? updatedEmoteNotifDocs.hasReadCasuallyFalseCount[0].count : 0
+    const hasReadDirectlyFalseCount = updatedEmoteNotifDocs.hasReadDirectlyFalseCount.length > 0 ? updatedEmoteNotifDocs.hasReadDirectlyFalseCount[0].count : 0
+
+    const emoteNotifs = emoteNotifDocs?.documents?.map((doc: EmoteNotifDocument) => mapEmoteNotifResponse(doc) as EmoteNotifSingleResponse)
+
+    return { emoteNotifs, hasReadCasuallyFalseCount, hasReadDirectlyFalseCount }
+  } catch (error) {
+    console.error('Error occurred while fetching and updating EmoteNotifs in DB', error)
+    throw new InternalServerError('Failed to fetch and update EmoteNotifs in DB')
   }
 }
 

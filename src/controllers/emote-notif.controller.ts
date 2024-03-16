@@ -5,6 +5,7 @@ import { handleError, handleSuccess } from '../lib/base'
 import {
   createEmoteNotifInDB,
   fetchAllEmoteNotifsFromDB,
+  fetchAndUpdateAllEmoteNotifsInDB,
   updateEmoteNotifsInDB,
   // deleteEmoteNotifInDB,
 } from '../services/emote-notif.service'
@@ -53,14 +54,40 @@ export async function updateEmoteNotif(req: Request, res: Response) {
   // hasReadCasually and hasReadDirectly will never be mixed up. List of IDs will always be all casual or all direct
 
   try {
+    const decodedAccount = (req as any).decodedAccount as DECODED_ACCOUNT
     const emoteNotifIDs =
       (req.body.emoteNotifIDs as string | undefined)?.split(',') ?? []
     // it will either be string 'casual' or 'direct'
     // isCasualRead is boolean version of that
     const isCasualRead = req.body.isCasualOrDirect === 'casual'
     const isMarkingUnread = req.body.isMarkingUnread
-    const updatedEmoteNotifs = await updateEmoteNotifsInDB(emoteNotifIDs, isCasualRead, isMarkingUnread)
-    return handleSuccess(res, { updatedEmoteNotifs })
+    const { hasReadCasuallyFalseCount, hasReadDirectlyFalseCount } = await updateEmoteNotifsInDB(emoteNotifIDs, isCasualRead, isMarkingUnread, decodedAccount)
+    return handleSuccess(res, { hasReadCasuallyFalseCount, hasReadDirectlyFalseCount })
+  } catch (error) {
+    console.error('Error occurred while updating emote notifs', error)
+    return handleError(res, error, 'Unable to update emote notifs')
+  }
+}
+
+// fetch and Update emote notifs - this is called when user hits their notifications page
+export async function fetchAndUpdateAllEmoteNotifs(req: Request, res: Response) {
+  try {
+    const decodedAccount = (req as any).decodedAccount as DECODED_ACCOUNT
+    const skip = Number.parseInt(req.body.skip as string) || 0
+    const limit = Number.parseInt(req.body.limit as string) || 10
+    const orderBy = req.body.orderBy as keyof EmoteNotifResponse
+    const orderDirection =
+      (req.body.orderDirection as string | undefined) ?? 'desc'
+
+    const options: EmoteNotifQueryOptions = {
+      skip,
+      limit,
+      orderBy,
+      orderDirection,
+    }
+
+    const { emoteNotifs, hasReadCasuallyFalseCount, hasReadDirectlyFalseCount } = await fetchAndUpdateAllEmoteNotifsInDB(options, decodedAccount)
+    return handleSuccess(res, { emoteNotifs, hasReadCasuallyFalseCount, hasReadDirectlyFalseCount })
   } catch (error) {
     console.error('Error occurred while updating emote notifs', error)
     return handleError(res, error, 'Unable to update emote notifs')
