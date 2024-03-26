@@ -16,7 +16,7 @@ export const createEmoteValidation = [
 ]
 
 export const fetchEmoteValidation = [
-  query('emoteId')
+  query('emoteID')
     .notEmpty()
     .isString()
     .withMessage('emoteId is not valid or null/empty'),

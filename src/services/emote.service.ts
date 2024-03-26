@@ -1,5 +1,5 @@
 import mongoose from 'mongoose'
-import type { FilterQuery } from 'mongoose'
+import type { FilterQuery, PipelineStage } from 'mongoose'
 
 import { EmoteModel } from '../models/emote.model'
 import type { EmoteDocument } from '../models/emote.model'
@@ -57,15 +57,15 @@ export async function createEmoteInDB(emoteData: Partial<EmoteRequest>): Promise
 
 }
 
-// export async function fetchEmoteFromDB(EmoteId: string): Promise<EmoteResponse | null> {
-//   try {
-//     const emoteDoc = await EmoteModel.findById(EmoteId)
-//     return emoteDoc ? emoteDoc.toObject() : null
-//   } catch (error) {
-//     console.error('Error occurred while fetching Emote from DB', error)
-//     throw new InternalServerError('Failed to fetch Emote from DB')
-//   }
-// }
+export async function fetchEmoteFromDB(EmoteId: string): Promise<EmoteResponse | null> {
+  try {
+    const emoteDoc = await EmoteModel.findById(EmoteId)
+    return emoteDoc ? mapEmoteResponse(emoteDoc.toObject()) as EmoteResponse : null
+  } catch (error) {
+    console.error('Error occurred while fetching Emote from DB', error)
+    throw new InternalServerError('Failed to fetch Emote from DB')
+  }
+}
 
 export async function fetchAllEmotesFromDB(
   options: EmoteQueryOptions
@@ -135,6 +135,67 @@ export async function fetchAllEmotesFromDB(
   } catch (error) {
     console.error('Error occurred while fetching all emotes from DB', error)
     throw new InternalServerError('Failed to fetch all emotes from DB')
+  }
+}
+
+export async function fetchLastUnrespondedReceivedEmotesFromDB(
+  receiverSymbol: string,
+  options: EmoteQueryOptions
+): Promise<EmoteResponse[]> {
+  const { skip, limit } = options
+
+  try {
+    const pipeline: PipelineStage[] = [
+      {
+        $match: {
+          receiverSymbols: receiverSymbol
+        }
+      },
+      {
+        $sort: { createdAt: -1 }
+      },
+      {
+        $group: {
+          _id: "$senderTwitterUsername",
+          latestEmote: { $first: "$$ROOT" }
+        }
+      },
+      {
+        $lookup: {
+          from: "emotes",
+          let: { senderUsername: "$_id", lastEmoteTimestamp: "$latestEmote.createdAt" },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $and: [
+                    { $eq: ["$senderTwitterUsername", receiverSymbol] },
+                    { $gt: ["$createdAt", "$$lastEmoteTimestamp"] }
+                  ]
+                }
+              }
+            }
+          ],
+          as: "responseCheck"
+        }
+      },
+      {
+        $match: {
+          "responseCheck": { $size: 0 }
+        }
+      },
+      {
+        $replaceRoot: { newRoot: "$latestEmote" }
+      },
+      { $skip: skip }, // Add skip stage
+      { $limit: limit } // Add limit stage
+    ]
+
+    const emotes = await EmoteModel.aggregate(pipeline).exec()
+    return emotes.map(mapEmoteResponse) as EmoteResponse[]
+  } catch (error) {
+    console.error('Error occurred while fetching last unresponded received emotes', error)
+    throw new InternalServerError('Failed to fetch last unresponded received emotes')
   }
 }
 
