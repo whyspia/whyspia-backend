@@ -7,7 +7,7 @@ import {
   fetchAllEmotesFromDB,
   // updateemoteInDB,
   deleteEmoteInDB,
-  fetchLastUnrespondedReceivedEmotesFromDB,
+  fetchUnrespondedReceivedEmotesFromDB,
   fetchEmoteFromDB,
 } from '../services/emote.service'
 import type { EmoteQueryOptions, EmoteResponse } from '../types/emote.types'
@@ -28,6 +28,34 @@ export async function createEmote(req: Request, res: Response) {
   } catch (error) {
     console.error('Error occurred while creating emote', error)
     return handleError(res, error, 'Unable to create emote')
+  }
+}
+
+export async function createEmotes(req: Request, res: Response) {
+  try {
+    const decodedAccount = (req as any).decodedAccount as DECODED_ACCOUNT
+    const emotesData = req.body.emotes // Assuming this is an array of objects similar to what createEmote expects for a single emote
+    const results = []
+
+    const currentDateTime = new Date()
+
+    for (const emoteData of emotesData) {
+      const receiverSymbols = (emoteData.receiverSymbols) ?? []
+      const sentSymbols = (emoteData.sentSymbols) ?? []
+      const requestData = {
+        senderTwitterUsername: decodedAccount.twitterUsername,
+        receiverSymbols,
+        sentSymbols,
+        timestamp: currentDateTime,
+      }
+      const emote = await createEmoteInDB(requestData)
+      results.push(emote)
+    }
+
+    return handleSuccess(res, { emotes: results })
+  } catch (error) {
+    console.error('Error occurred while creating emotes', error)
+    return handleError(res, error, 'Unable to create emotes')
   }
 }
 
@@ -74,7 +102,7 @@ export async function fetchAllEmotes(req: Request, res: Response) {
 }
 
 // this is for no u context. last emotes for specific user that they have not responded to and is latest one from that sender
-export async function fetchLastUnrespondedReceivedEmotes(req: Request, res: Response) {
+export async function fetchUnrespondedReceivedEmotes(req: Request, res: Response) {
   try {
     const decodedAccount = (req as any).decodedAccount as DECODED_ACCOUNT
     const skip = Number.parseInt(req.query.skip as string) || 0
@@ -85,7 +113,7 @@ export async function fetchLastUnrespondedReceivedEmotes(req: Request, res: Resp
     // const search = (req.query.search as string) || null
     const senderTwitterUsername = (req.query.senderTwitterUsername as string) || null
     // const receiverSymbols = req.query.receiverSymbols && req.query.receiverSymbols !== '' ? (req.query.receiverSymbols as string | undefined)?.split(',') as any : []
-    const sentSymbols = req.query.sentSymbols && req.query.sentSymbols !== '' ? (req.query.sentSymbols as string | undefined)?.split(',') as any : []
+    const sentSymbols = req.query.sentSymbols && req.query.sentSymbols !== '' ? (req.query.sentSymbols) as any : []
 
     const options: EmoteQueryOptions = {
       skip,
@@ -98,7 +126,7 @@ export async function fetchLastUnrespondedReceivedEmotes(req: Request, res: Resp
       sentSymbols,
     }
 
-    const emotes = await fetchLastUnrespondedReceivedEmotesFromDB(decodedAccount?.twitterUsername, options)
+    const emotes = await fetchUnrespondedReceivedEmotesFromDB(decodedAccount?.twitterUsername, options)
     return handleSuccess(res, { emotes })
   } catch (error) {
     console.error('Error occurred while fetching all emotes', error)

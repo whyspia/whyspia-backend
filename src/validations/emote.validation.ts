@@ -15,6 +15,13 @@ export const createEmoteValidation = [
     .withMessage('sentSymbols is not valid or null/empty'),
 ]
 
+export const createEmotesManyValidation = [
+  body('emotes')
+    .notEmpty()
+    .isArray()
+    .withMessage('emotes is not valid or null/empty'),
+]
+
 export const fetchEmoteValidation = [
   query('emoteID')
     .notEmpty()

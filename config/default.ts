@@ -47,11 +47,6 @@ const config = {
     emailVerificationTemplateId:
       process.env.SENDGRID_EMAIL_VERIFICATION_TEMPLATE_ID ?? '',
   },
-  azureStorage: {
-    connectionString: process.env.AZURE_STORAGE_CONNECTION_STRING,
-    image_max_age: process.env.IMAGE_MAX_AGE,
-    cdn: process.env.AZURE_STORAGE_CDN,
-  },
 }
 
 export default config
