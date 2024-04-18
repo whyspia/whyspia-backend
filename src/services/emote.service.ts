@@ -2,7 +2,7 @@ import type { FilterQuery } from 'mongoose'
 
 import { EmoteModel } from '../models/emote.model'
 import type { EmoteDocument } from '../models/emote.model'
-import type { EmoteQueryOptions, EmoteRequest, EmoteResponse } from '../types/emote.types'
+import type { EmoteNoUContextQueryOptions, EmoteQueryOptions, EmoteRequest, EmoteResponse } from '../types/emote.types'
 import { InternalServerError } from './errors'
 import { mapEmoteResponse } from '../util/emoteUtil'
 import escapeStringRegexp from 'escape-string-regexp'
@@ -140,16 +140,35 @@ export async function fetchAllEmotesFromDB(
 }
 
 // get unresponded received emotes in the no u context (these conditions based on emotes sent at same timestamp as main emote)
-export async function fetchUnrespondedReceivedEmotesFromDB(
-  receiverSymbol: string,
-  options: EmoteQueryOptions
+export async function fetchUnrespondedEmotesFromDB(
+  receiverOrSenderSymbol: string,
+  options: EmoteNoUContextQueryOptions
 ): Promise<EmoteResponse[]> {
-  const { skip, limit } = options
+  const { skip, limit, fetchSentOrReceived } = options
+
+  const primaryUserFilter = fetchSentOrReceived === 'sent'
+    ?
+    {
+      $match: {
+        senderTwitterUsername: receiverOrSenderSymbol,
+        receiverSymbols: {
+          // this is what filters out the additional emotes used for identifying noucontext and replies - prob not ideal tbh 
+          $not: {
+            $in: [
+              new RegExp(escapeStringRegexp("nou context"), 'iu'),
+              new RegExp(escapeStringRegexp(`${getFrontendURL()}/emote/`), 'iu')
+            ]
+          }
+        },
+      } 
+    }
+    // luckily this condition filters out the additional emotes used for identifying noucontext and replies. When fetchSentOrReceived === 'sent' - not so lucky
+    : { $match: { receiverSymbols: receiverOrSenderSymbol } }
 
   try {
     const pipeline = [
       // Match emotes received by the user
-      { $match: { receiverSymbols: receiverSymbol } },
+      primaryUserFilter,
       // Lookup to join with the same collection to find "no u" context emotes
       {
         $lookup: {
@@ -157,6 +176,8 @@ export async function fetchUnrespondedReceivedEmotesFromDB(
           let: { emoteCreatedAt: "$createdAt", emoteId: "$_id" },
           pipeline: [
             {
+              // this finds the emote that identifies if primary emote (being looped one at a time) is no u context emote. If not, i guess it filters this primary emote out?
+              // more simply, i think this just filters out all non-noucontext emotes from results
               $match: {
                 $expr: {
                   $and: [
@@ -177,6 +198,7 @@ export async function fetchUnrespondedReceivedEmotesFromDB(
                     $match: {
                       $expr: {
                         $and: [
+                          // TODO: i think one day could add in sender of user too as extra filter
                           { $in: ["reply", "$sentSymbols"] },
                           { $in: [{ $concat: [`${getFrontendURL()}/emote/`, { $toString: "$$emoteId" }] }, "$receiverSymbols"] }
                         ]
@@ -209,9 +231,57 @@ export async function fetchUnrespondedReceivedEmotesFromDB(
     // Assuming you need to map the results to your EmoteResponse format
     return result.map(mapEmoteResponse) as EmoteResponse[]
   } catch (error) {
-    console.error('Error occurred while fetching last unresponded received emotes using aggregation', error)
-    throw new InternalServerError('Failed to fetch last unresponded received emotes')
+    console.error('Error occurred while fetching unresponded emotes using aggregation', error)
+    throw new InternalServerError('Failed to fetch unresponded emotes')
   }
+}
+
+// take in emote and if it is a reply, keep iterating backwards to find all prior replies
+// a reply is identified by a separate emote DB record with same createdAt as emote replied to
+export async function findEmoteReplyChainInDB(emoteId: string): Promise<EmoteResponse[]> {
+  let currentEmote = await EmoteModel.findById(emoteId) as any
+  if (!currentEmote) {
+    throw new Error('Emote not found')
+  }
+
+  const chain: any[] = [mapEmoteResponse(currentEmote.toObject())] as any
+  let searching = true
+
+  while (searching) {
+    const createdAt = currentEmote.createdAt
+
+    // Find the emote that indicates a reply, by matching createdAt and containing a URL in receiverSymbols
+    const replyIndicatorEmote = await EmoteModel.findOne({
+      createdAt: createdAt,
+      sentSymbols: 'reply'
+    })
+
+    if (!replyIndicatorEmote) {
+      searching = false // No reply indicator found, end of chain
+      break
+    }
+
+    // Extract the replied-to emote ID from the reply indicator
+    const repliedToUrl = replyIndicatorEmote.receiverSymbols.find(symbol => symbol.startsWith(`${getFrontendURL()}/emote/`));
+    const repliedToEmoteId = repliedToUrl?.split('/').pop()
+
+    if (!repliedToEmoteId) {
+      searching = false // Malformed URL or end of chain
+      break
+    }
+
+    // Find the emote that was replied to
+    const repliedToEmote = await EmoteModel.findById(repliedToEmoteId)
+
+    if (repliedToEmote) {
+      chain.unshift(mapEmoteResponse(repliedToEmote.toObject())) // Prepend to maintain order
+      currentEmote = repliedToEmote // Set this as the current emote for the next iteration
+    } else {
+      searching = false // No further replies found
+    }
+  }
+
+  return chain
 }
 
 // export async function updateEmoteInDB(EmoteId: string, updatedData: Partial<EmoteResponse>): Promise<EmoteResponse | null> {

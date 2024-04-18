@@ -25,3 +25,14 @@ export type EmoteQueryOptions = {
   receiverSymbols: string[] | null
   sentSymbols: string[] | null
 }
+
+export type EmoteNoUContextQueryOptions = {
+  skip: number
+  limit: number
+  orderBy: keyof EmoteResponse
+  orderDirection: string
+  senderTwitterUsername: string | null
+  receiverSymbols: string[] | null
+  sentSymbols: string[] | null
+  fetchSentOrReceived: string
+}

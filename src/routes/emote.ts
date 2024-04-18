@@ -6,9 +6,10 @@ import {
   fetchAllEmotes,
   // updateEmote,
   deleteEmote,
-  fetchUnrespondedReceivedEmotes,
+  fetchUnrespondedEmotes,
   fetchEmote,
   createEmotes,
+  findEmoteReplyChain,
 } from '../controllers/emote.controller'
 import { validateRequest } from '../middleware/validateRequest'
 import {
@@ -18,6 +19,7 @@ import {
   deleteEmoteValidation,
   fetchEmoteValidation,
   createEmotesManyValidation,
+  fetchUnrespondedEmotesValidation,
 } from '../validations/emote.validation'
 
 export const emoteRouter = express.Router()
@@ -53,11 +55,18 @@ emoteRouter.get(
 )
 
 emoteRouter.get(
-  '/fetchUnrespondedReceivedEmotes',
-  fetchAllEmotesValidation,
+  '/fetchUnrespondedEmotes',
+  fetchUnrespondedEmotesValidation,
   validateRequest,
   authenticateAndSetAccount,
-  fetchUnrespondedReceivedEmotes
+  fetchUnrespondedEmotes
+)
+
+emoteRouter.get(
+  '/findEmoteReplyChain',
+  // fetchAllEmotesValidation,
+  validateRequest,
+  findEmoteReplyChain
 )
 
 // emoteRouter.put(
