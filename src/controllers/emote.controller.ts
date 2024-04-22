@@ -11,7 +11,7 @@ import {
   fetchEmoteFromDB,
   findEmoteReplyChainInDB,
 } from '../services/emote.service'
-import type { EmoteNoUContextQueryOptions, EmoteQueryOptions, EmoteResponse } from '../types/emote.types'
+import type { EmoteNoUContextQueryOptions, EmoteNouChainQueryOptions, EmoteQueryOptions, EmoteResponse } from '../types/emote.types'
 
 export async function createEmote(req: Request, res: Response) {
   try {
@@ -137,7 +137,7 @@ export async function fetchUnrespondedEmotes(req: Request, res: Response) {
   }
 }
 
-export async function findEmoteReplyChain(req: Request, res: Response) {
+export async function fetchEmoteReplyChain(req: Request, res: Response) {
   try {
     const emoteID = req.query.emoteID as string
     // const decodedAccount = (req as any).decodedAccount as DECODED_ACCOUNT
@@ -146,27 +146,19 @@ export async function findEmoteReplyChain(req: Request, res: Response) {
     const orderBy = req.query.orderBy as keyof EmoteResponse
     const orderDirection =
       (req.query.orderDirection as string | undefined) ?? 'desc'
-    // const search = (req.query.search as string) || null
-    const senderTwitterUsername = (req.query.senderTwitterUsername as string) || null
-    // const receiverSymbols = req.query.receiverSymbols && req.query.receiverSymbols !== '' ? (req.query.receiverSymbols as string | undefined)?.split(',') as any : []
-    const sentSymbols = req.query.sentSymbols && req.query.sentSymbols !== '' ? (req.query.sentSymbols) as any : []
 
-    const options: EmoteQueryOptions = {
+    const options: EmoteNouChainQueryOptions = {
       skip,
       limit,
       orderBy,
       orderDirection,
-      // search,
-      senderTwitterUsername,
-      receiverSymbols: [],
-      sentSymbols,
     }
 
-    const emotes = await findEmoteReplyChainInDB(emoteID)
+    const emotes = await findEmoteReplyChainInDB(emoteID, options)
     return handleSuccess(res, { emotes })
   } catch (error) {
-    console.error('Error occurred while fetching findEmoteReplyChain', error)
-    return handleError(res, error, 'Unable to fetch findEmoteReplyChain')
+    console.error('Error occurred while fetching fetchEmoteReplyChain', error)
+    return handleError(res, error, 'Unable to fetch fetchEmoteReplyChain')
   }
 }
 

@@ -16,6 +16,16 @@ export type EmoteResponse = {
   timestamp: Date
 }
 
+export type EmoteResponseWithNoUChainPreviews = {
+  id: string
+  senderTwitterUsername: string
+  receiverSymbols: string[]
+  sentSymbols: string[]
+  timestamp: Date
+  chainPreview: EmoteResponse[]
+  totalChainLength: number
+}
+
 export type EmoteQueryOptions = {
   skip: number
   limit: number
@@ -35,4 +45,11 @@ export type EmoteNoUContextQueryOptions = {
   receiverSymbols: string[] | null
   sentSymbols: string[] | null
   fetchSentOrReceived: string
+}
+
+export type EmoteNouChainQueryOptions = {
+  skip: number
+  limit: number
+  orderBy: keyof EmoteResponse
+  orderDirection: string
 }

@@ -75,6 +75,32 @@ export const fetchUnrespondedEmotesValidation = [
     .withMessage('OrderBy cannot be empty and should be a valid string'),
 ]
 
+export const fetchEmoteReplyChainValidation = [
+  query('emoteID')
+    .notEmpty()
+    .isString()
+    .withMessage('emoteId is not valid or null/empty'),
+  query('skip')
+    .optional()
+    .isInt({ min: 0 })
+    .withMessage('skip should be a non-negative integer'),
+  query('limit')
+    .optional()
+    .isInt({ min: 1 })
+    .withMessage('limit should be a positive integer'),
+  query('orderBy')
+    .optional()
+    .isString()
+    .isIn([
+      'timestamp',
+    ])
+    .withMessage('orderBy should be a valid string if provided'),
+  query('orderDirection')
+    .optional()
+    .isString()
+    .withMessage('orderDirection should be a valid string if provided'),
+]
+
 export const updateEmoteValidation = [
   body('emoteId')
     .notEmpty()

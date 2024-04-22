@@ -9,7 +9,7 @@ import {
   fetchUnrespondedEmotes,
   fetchEmote,
   createEmotes,
-  findEmoteReplyChain,
+  fetchEmoteReplyChain,
 } from '../controllers/emote.controller'
 import { validateRequest } from '../middleware/validateRequest'
 import {
@@ -20,6 +20,7 @@ import {
   fetchEmoteValidation,
   createEmotesManyValidation,
   fetchUnrespondedEmotesValidation,
+  fetchEmoteReplyChainValidation,
 } from '../validations/emote.validation'
 
 export const emoteRouter = express.Router()
@@ -63,10 +64,10 @@ emoteRouter.get(
 )
 
 emoteRouter.get(
-  '/findEmoteReplyChain',
-  // fetchAllEmotesValidation,
+  '/fetchEmoteReplyChain',
+  fetchEmoteReplyChainValidation,
   validateRequest,
-  findEmoteReplyChain
+  fetchEmoteReplyChain
 )
 
 // emoteRouter.put(

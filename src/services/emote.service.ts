@@ -2,9 +2,9 @@ import type { FilterQuery } from 'mongoose'
 
 import { EmoteModel } from '../models/emote.model'
 import type { EmoteDocument } from '../models/emote.model'
-import type { EmoteNoUContextQueryOptions, EmoteQueryOptions, EmoteRequest, EmoteResponse } from '../types/emote.types'
+import type { EmoteNoUContextQueryOptions, EmoteNouChainQueryOptions, EmoteQueryOptions, EmoteRequest, EmoteResponse } from '../types/emote.types'
 import { InternalServerError } from './errors'
-import { mapEmoteResponse } from '../util/emoteUtil'
+import { mapEmoteResponse, mapEmoteResponseWithNoUChainPreviews } from '../util/emoteUtil'
 import escapeStringRegexp from 'escape-string-regexp'
 import { createSymbolInDB, fetchAllSymbolsFromDB } from './symbol.service'
 import { createEmoteNotifInDB } from './emote-notif.service'
@@ -144,7 +144,7 @@ export async function fetchUnrespondedEmotesFromDB(
   receiverOrSenderSymbol: string,
   options: EmoteNoUContextQueryOptions
 ): Promise<EmoteResponse[]> {
-  const { skip, limit, fetchSentOrReceived } = options
+  const { skip, limit, orderBy, orderDirection, fetchSentOrReceived } = options
 
   const primaryUserFilter = fetchSentOrReceived === 'sent'
     ?
@@ -223,13 +223,22 @@ export async function fetchUnrespondedEmotesFromDB(
       { $match: { "noUContextEmotes.0": { $exists: true } } },
       // Apply skip and limit
       { $skip: skip },
-      { $limit: limit }
+      { $limit: limit },
+      { $sort: { [orderBy]: orderDirection === 'asc' ? 1 : -1 } } as any
     ]
 
     const result = await EmoteModel.aggregate(pipeline)
 
+    const emotesWithReplyChains = await Promise.all(result.map(async (emote) => {
+      const orderBy = 'timestamp'
+      const orderDirection = 'desc'
+      // skip 1 bc otherwise the preview will start with the emote passed in (which is one displayed on frontend so dont need duplicate of it)
+      const { chain, totalChainLength } = await findEmoteReplyChainInDB(emote._id, { skip: 1, limit: 2, orderBy, orderDirection }) // Adjust skip and limit as needed
+      return { ...emote, chainPreview: chain, totalChainLength }
+    }))
+
     // Assuming you need to map the results to your EmoteResponse format
-    return result.map(mapEmoteResponse) as EmoteResponse[]
+    return emotesWithReplyChains.map(mapEmoteResponseWithNoUChainPreviews) as EmoteResponse[]
   } catch (error) {
     console.error('Error occurred while fetching unresponded emotes using aggregation', error)
     throw new InternalServerError('Failed to fetch unresponded emotes')
@@ -238,14 +247,17 @@ export async function fetchUnrespondedEmotesFromDB(
 
 // take in emote and if it is a reply, keep iterating backwards to find all prior replies
 // a reply is identified by a separate emote DB record with same createdAt as emote replied to
-export async function findEmoteReplyChainInDB(emoteId: string): Promise<EmoteResponse[]> {
+export async function findEmoteReplyChainInDB(emoteId: string, options: EmoteNouChainQueryOptions): Promise<{ chain: EmoteResponse[], totalChainLength: number }> {
   let currentEmote = await EmoteModel.findById(emoteId) as any
   if (!currentEmote) {
     throw new Error('Emote not found')
   }
 
+  const { skip, limit, orderBy, orderDirection, } = options
+
   const chain: any[] = [mapEmoteResponse(currentEmote.toObject())] as any
   let searching = true
+  let totalChainLength = 1 // Initialize total length with the first emote
 
   while (searching) {
     const createdAt = currentEmote.createdAt
@@ -276,12 +288,26 @@ export async function findEmoteReplyChainInDB(emoteId: string): Promise<EmoteRes
     if (repliedToEmote) {
       chain.unshift(mapEmoteResponse(repliedToEmote.toObject())) // Prepend to maintain order
       currentEmote = repliedToEmote // Set this as the current emote for the next iteration
+      totalChainLength++ // Increment total length
     } else {
       searching = false // No further replies found
     }
   }
 
-  return chain
+  // Sort the chain based on orderBy and orderDirection
+  // this defs works for timestamp (and i think any numerical values), but otherwise wont work
+  chain.sort((a, b) => {
+    if (options.orderDirection === 'asc') {
+        return a[options.orderBy] > b[options.orderBy] ? 1 : -1;
+    } else {
+        return a[options.orderBy] < b[options.orderBy] ? 1 : -1;
+    }
+  })
+
+  // Apply skip and limit
+  const paginatedChain = chain.slice(skip, skip + limit)
+
+  return { chain: paginatedChain, totalChainLength }
 }
 
 // export async function updateEmoteInDB(EmoteId: string, updatedData: Partial<EmoteResponse>): Promise<EmoteResponse | null> {
