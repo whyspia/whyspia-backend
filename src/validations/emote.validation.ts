@@ -46,6 +46,10 @@ export const fetchAllEmotesValidation = [
     .optional()
     .isString()
     .withMessage('orderDirection should be a valid string if provided'),
+  query('createdAt')
+    .optional()
+    .isString()
+    .withMessage('createdAt should be a valid string if provided'),
 ]
 
 export const fetchUnrespondedEmotesValidation = [

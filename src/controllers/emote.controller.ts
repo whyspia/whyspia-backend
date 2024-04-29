@@ -82,16 +82,17 @@ export async function fetchAllEmotes(req: Request, res: Response) {
     const senderTwitterUsername = (req.query.senderTwitterUsername as string) || null
     const receiverSymbols = req.query.receiverSymbols && req.query.receiverSymbols !== '' ? (req.query.receiverSymbols as string | undefined)?.split(',') as any : []
     const sentSymbols = req.query.sentSymbols && req.query.sentSymbols !== '' ? (req.query.sentSymbols as string | undefined)?.split(',') as any : []
+    const createdAt = (req.query.createdAt as string) || null // filter by emotes createdAt this datetime
 
     const options: EmoteQueryOptions = {
       skip,
       limit,
       orderBy,
       orderDirection,
-      // search,
       senderTwitterUsername,
       receiverSymbols,
       sentSymbols,
+      createdAt,
     }
 
     const emotes = await fetchAllEmotesFromDB(options)

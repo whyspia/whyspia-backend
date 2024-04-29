@@ -14,6 +14,7 @@ export function mapEmoteResponse(
     receiverSymbols: emoteDoc.receiverSymbols,
     sentSymbols: emoteDoc.sentSymbols,
     timestamp: (emoteDoc as any).createdAt,
+    context: (emoteDoc as any).context,
   }
 }
 
@@ -30,6 +31,7 @@ export function mapEmoteResponseWithNoUChainPreviews(
     receiverSymbols: emoteDoc.receiverSymbols,
     sentSymbols: emoteDoc.sentSymbols,
     timestamp: (emoteDoc as any).createdAt,
+    context: (emoteDoc as any).context,
     chainPreview: (emoteDoc as any).chainPreview,
     totalChainLength: (emoteDoc as any).totalChainLength,
   }

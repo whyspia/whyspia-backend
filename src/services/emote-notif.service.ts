@@ -9,6 +9,8 @@ import { mapEmoteNotifResponse } from '../util/emoteNotifUtil'
 import escapeStringRegexp from 'escape-string-regexp'
 import { createSymbolInDB, fetchAllSymbolsFromDB } from './symbol.service'
 import { DECODED_ACCOUNT } from '../util/jwtTokenUtil'
+import { getContextOfEmote } from './context.service'
+import { mapEmoteResponse } from '../util/emoteUtil'
 
 export async function createEmoteNotifInDB(emoteNotifData: Partial<EmoteNotifRequest>): Promise<EmoteNotifSingleResponse | null> {
   try {
@@ -96,9 +98,23 @@ export async function fetchAllEmoteNotifsFromDB(
     // .skip(skip)
     // .limit(limit)
 
-    const emoteNotifs = emoteNotifDocs?.documents?.map((doc: EmoteNotifDocument) => mapEmoteNotifResponse(doc) as EmoteNotifSingleResponse)
+    // loop through emoteNotifs and add a new field for each item
+    // typically context will be calculated with the emoteData...but here emoteData is calced in DB query...so cant really do dat
+    const emoteNotifsWithContext = await Promise.all(emoteNotifDocs?.documents?.map(async (emoteNotif: any) => {
+      const context = await getContextOfEmote(mapEmoteResponse(emoteNotif.emoteData), null)
+      return { ...emoteNotif, emoteData: { ...emoteNotif.emoteData, context } }
+    }))
+
+    const emoteNotifs = emoteNotifsWithContext.map((doc: EmoteNotifDocument) => mapEmoteNotifResponse(doc) as EmoteNotifSingleResponse)
     const hasReadCasuallyFalseCount = emoteNotifDocs.hasReadCasuallyFalseCount.length > 0 ? emoteNotifDocs.hasReadCasuallyFalseCount[0].count : 0;
     const hasReadDirectlyFalseCount = emoteNotifDocs.hasReadDirectlyFalseCount.length > 0 ? emoteNotifDocs.hasReadDirectlyFalseCount[0].count : 0;
+
+    // loop through emoteNotifs and add a new field for each item
+    // typically context will be calculated with the emoteData...but here emoteData is calced in DB query...so cant really do dat
+    // const emoteNotifsWithContext = await Promise.all(emoteNotifs.map(async (emoteNotif: any) => {
+    //   const context = await getContextOfEmote(emoteNotif.emoteData.id)
+    //   return { ...emoteNotif, context }
+    // }))
 
     return { emoteNotifs, hasReadCasuallyFalseCount, hasReadDirectlyFalseCount  }
   } catch (error) {

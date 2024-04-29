@@ -9,6 +9,8 @@ import escapeStringRegexp from 'escape-string-regexp'
 import { createSymbolInDB, fetchAllSymbolsFromDB } from './symbol.service'
 import { createEmoteNotifInDB } from './emote-notif.service'
 import { getFrontendURL } from '../util/seoConstantsUtil'
+import { EMOTE_CONTEXTS } from '../util/contextUtil'
+import { getContextOfEmote } from './context.service'
 
 export async function createEmoteInDB(emoteData: Partial<EmoteRequest>): Promise<EmoteResponse | null> {
   if (!emoteData.sentSymbols || emoteData.sentSymbols.length === 0) {
@@ -58,10 +60,20 @@ export async function createEmoteInDB(emoteData: Partial<EmoteRequest>): Promise
 
 }
 
-export async function fetchEmoteFromDB(EmoteId: string): Promise<EmoteResponse | null> {
+export async function fetchEmoteFromDB(EmoteId: string, skipContext: boolean = false): Promise<EmoteResponse | null> {
   try {
     const emoteDoc = await EmoteModel.findById(EmoteId)
-    return emoteDoc ? mapEmoteResponse(emoteDoc.toObject()) as EmoteResponse : null
+
+    // this is to avoid recursion
+    let emoteWithContext = null
+    if (!skipContext) {
+      const context = await getContextOfEmote(mapEmoteResponse(emoteDoc?.toObject() as any), null)
+      emoteWithContext = { ...emoteDoc?.toObject(), context }
+    }
+
+    const resultEmote = skipContext ? emoteDoc?.toObject() : emoteWithContext
+    
+    return emoteDoc ? mapEmoteResponse(resultEmote as any) as EmoteResponse : null
   } catch (error) {
     console.error('Error occurred while fetching Emote from DB', error)
     throw new InternalServerError('Failed to fetch Emote from DB')
@@ -69,11 +81,12 @@ export async function fetchEmoteFromDB(EmoteId: string): Promise<EmoteResponse |
 }
 
 export async function fetchAllEmotesFromDB(
-  options: EmoteQueryOptions
+  options: EmoteQueryOptions,
+  skipContext: boolean = false
 ): Promise<EmoteResponse[]> {
   try {
 
-    const { skip, limit, orderBy, senderTwitterUsername, receiverSymbols, sentSymbols } = options
+    const { skip, limit, orderBy, senderTwitterUsername, receiverSymbols, sentSymbols, createdAt } = options
     const orderDirection = options.orderDirection === 'asc' ? 1 : -1
 
     // Sorting Options
@@ -88,6 +101,14 @@ export async function fetchAllEmotesFromDB(
       filterOptions.push({
         $or: [
           { senderTwitterUsername: { $regex: new RegExp("^" + senderTwitterUsername + "$", 'iu') } },
+        ],
+      })
+    }
+
+    if (createdAt) {
+      filterOptions.push({
+        $or: [
+          { createdAt: new Date(createdAt) },
         ],
       })
     }
@@ -132,7 +153,18 @@ export async function fetchAllEmotesFromDB(
       .skip(skip)
       .limit(limit)
 
-    return emoteDocs.map((doc) => mapEmoteResponse(doc) as EmoteResponse)
+      // this is to avoid recursion
+    let emotesWithContext = null
+    if (!skipContext) {
+      emotesWithContext = await Promise.all(emoteDocs?.map(async (e: any) => {
+        const context = await getContextOfEmote(mapEmoteResponse(e?.toObject() as any), null)
+        return { ...e?.toObject(), context }
+      }))
+    }
+
+    const resultEmotes = skipContext ? emoteDocs : emotesWithContext
+
+    return resultEmotes?.map((doc) => mapEmoteResponse(doc) as EmoteResponse) as EmoteResponse[]
   } catch (error) {
     console.error('Error occurred while fetching all emotes from DB', error)
     throw new InternalServerError('Failed to fetch all emotes from DB')
@@ -155,7 +187,7 @@ export async function fetchUnrespondedEmotesFromDB(
           // this is what filters out the additional emotes used for identifying noucontext and replies - prob not ideal tbh 
           $not: {
             $in: [
-              new RegExp(escapeStringRegexp("nou context"), 'iu'),
+              new RegExp(escapeStringRegexp(EMOTE_CONTEXTS.NOU), 'iu'),
               new RegExp(escapeStringRegexp(`${getFrontendURL()}/emote/`), 'iu')
             ]
           }
@@ -183,7 +215,7 @@ export async function fetchUnrespondedEmotesFromDB(
                   $and: [
                     { $eq: ["$createdAt", "$$emoteCreatedAt"] },
                     { $in: ["symbol", "$sentSymbols"] },
-                    { $in: ["nou context", "$receiverSymbols"] }
+                    { $in: [EMOTE_CONTEXTS.NOU, "$receiverSymbols"] }
                   ]
                 }
               }
@@ -234,7 +266,10 @@ export async function fetchUnrespondedEmotesFromDB(
       const orderDirection = 'desc'
       // skip 1 bc otherwise the preview will start with the emote passed in (which is one displayed on frontend so dont need duplicate of it)
       const { chain, totalChainLength } = await findEmoteReplyChainInDB(emote._id, { skip: 1, limit: 2, orderBy, orderDirection }) // Adjust skip and limit as needed
-      return { ...emote, chainPreview: chain, totalChainLength }
+      
+      const context = await getContextOfEmote(mapEmoteResponse(emote as any), null)
+      
+      return { ...emote, chainPreview: chain, totalChainLength, context }
     }))
 
     // Assuming you need to map the results to your EmoteResponse format
