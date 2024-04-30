@@ -1,0 +1,3 @@
+thoughts on stuck points
+  [[April 29th, 2024]]
+    - i know eventually should allow for multiple contexts per emote, but currently dont have that. It gets ambiguous since a context is decided by additional emotes which is just additional data and then some code uses that data in logical calculations to determine context of a primary emote. Ex: shmoji sent hey to nana - this could be a No U context emote or a nana-context emote really - and if you have the additional identifying emotes for both contexts - unless even more additional emotes are provided, no one knows which context specifically person intended - but i guess you can just assume both???

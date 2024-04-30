@@ -37,6 +37,7 @@ export type EmoteQueryOptions = {
   receiverSymbols: string[] | null
   sentSymbols: string[] | null
   createdAt: string | null
+  context: string | null
 }
 
 export type EmoteNoUContextQueryOptions = {

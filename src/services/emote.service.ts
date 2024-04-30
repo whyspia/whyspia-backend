@@ -80,13 +80,112 @@ export async function fetchEmoteFromDB(EmoteId: string, skipContext: boolean = f
   }
 }
 
+// this gets pipeline passed to mongoose to get emotes of particular context. NOTE: this is not getting what that context displays on frontend - this just gets all emotes of passed in context
+// pipeline is just array of objects
+// goal is for this to be minimal, so it shouldnt handle sorting, pagination, etc - that can be appended to this return value tho
+function getDBAggregatePipelineForContext(context: string, args: any) {
+  if (context === EMOTE_CONTEXTS.NANA) {
+    const removeIdentifyingEmotesFilter = {
+      $match: {
+        receiverSymbols: {
+          // this is what filters out the additional emotes used for identifying nana context - prob not ideal tbh 
+          $not: {
+            $in: [
+              new RegExp(escapeStringRegexp(EMOTE_CONTEXTS.NANA), 'iu'),
+            ]
+          }
+        },
+      } 
+    }
+
+    const pipeline = [
+      removeIdentifyingEmotesFilter,
+      // Lookup to join with the same collection to find "no u" context emotes
+      {
+        $lookup: {
+          from: 'emotes', // Assuming the collection name is 'emotes'
+          let: { emoteCreatedAt: "$createdAt", emoteId: "$_id" },
+          pipeline: [
+            {
+              // this finds the emote that identifies if primary emote (being looped one at a time) is no u context emote. If not, i guess it filters this primary emote out?
+              // more simply, i think this just filters out all non-noucontext emotes from results
+              $match: {
+                $expr: {
+                  $and: [
+                    { $eq: ["$createdAt", "$$emoteCreatedAt"] },
+                    { $in: ["symbol", "$sentSymbols"] },
+                    { $in: [EMOTE_CONTEXTS.NANA, "$receiverSymbols"] }
+                  ]
+                }
+              }
+            },
+          ],
+          as: 'nanaContextEmotes'
+        }
+      },
+      // Filter out documents that didn't join with "nana" context emotes
+      { $match: { "nanaContextEmotes.0": { $exists: true } } },
+    ]
+
+    return pipeline
+  } else if (context === EMOTE_CONTEXTS.NOU) {
+
+    const removeIdentifyingEmotesFilter = {
+      $match: {
+        receiverSymbols: {
+          // this is what filters out the additional emotes used for identifying noucontext and replies - prob not ideal tbh 
+          $not: {
+            $in: [
+              new RegExp(escapeStringRegexp(EMOTE_CONTEXTS.NOU), 'iu'),
+              new RegExp(escapeStringRegexp(`${getFrontendURL()}/emote/`), 'iu')
+            ]
+          }
+        },
+      } 
+    }
+
+    const pipeline = [
+      removeIdentifyingEmotesFilter,
+      // Lookup to join with the same collection to find "no u" context emotes
+      {
+        $lookup: {
+          from: 'emotes', // Assuming the collection name is 'emotes'
+          let: { emoteCreatedAt: "$createdAt", emoteId: "$_id" },
+          pipeline: [
+            {
+              // this finds the emote that identifies if primary emote (being looped one at a time) is no u context emote. If not, i guess it filters this primary emote out?
+              // more simply, i think this just filters out all non-noucontext emotes from results
+              $match: {
+                $expr: {
+                  $and: [
+                    { $eq: ["$createdAt", "$$emoteCreatedAt"] },
+                    { $in: ["symbol", "$sentSymbols"] },
+                    { $in: [EMOTE_CONTEXTS.NOU, "$receiverSymbols"] }
+                  ]
+                }
+              }
+            },
+          ],
+          as: 'noUContextEmotes'
+        }
+      },
+      // Filter out documents that didn't join with "no u" context emotes
+      { $match: { "noUContextEmotes.0": { $exists: true } } },
+    ]
+
+    return pipeline
+  }
+
+  return null
+}
+
 export async function fetchAllEmotesFromDB(
   options: EmoteQueryOptions,
   skipContext: boolean = false
 ): Promise<EmoteResponse[]> {
   try {
 
-    const { skip, limit, orderBy, senderTwitterUsername, receiverSymbols, sentSymbols, createdAt } = options
+    const { skip, limit, orderBy, senderTwitterUsername, receiverSymbols, sentSymbols, createdAt, context } = options
     const orderDirection = options.orderDirection === 'asc' ? 1 : -1
 
     // Sorting Options
@@ -147,18 +246,32 @@ export async function fetchAllEmotesFromDB(
       filterQuery = { $and: filterOptions }
     }
 
-    const emoteDocs: EmoteDocument[] = await EmoteModel
-      .find(filterQuery)
-      .sort(sortOptions)
-      .skip(skip)
-      .limit(limit)
+    let emoteDocs: EmoteDocument[]
+    if (context) {
+      const contextPipeline = getDBAggregatePipelineForContext(context, {})
+
+      emoteDocs = await EmoteModel
+        .aggregate(contextPipeline as any)
+        .sort(sortOptions)
+        .skip(skip)
+        .limit(limit)
+    } else {
+      emoteDocs = await EmoteModel
+        .find(filterQuery)
+        .sort(sortOptions)
+        .skip(skip)
+        .limit(limit)
+        .lean() // Use lean() to return plain JavaScript objects
+    }
+
 
       // this is to avoid recursion
     let emotesWithContext = null
     if (!skipContext) {
       emotesWithContext = await Promise.all(emoteDocs?.map(async (e: any) => {
-        const context = await getContextOfEmote(mapEmoteResponse(e?.toObject() as any), null)
-        return { ...e?.toObject(), context }
+        // if you pass in context to filter by, then dont need to calculate it for each emote fetched from DB
+        const calculatedContext = context ?? await getContextOfEmote(mapEmoteResponse(e as any), null)
+        return { ...e, context: calculatedContext }
       }))
     }
 
@@ -290,7 +403,7 @@ export async function findEmoteReplyChainInDB(emoteId: string, options: EmoteNou
 
   const { skip, limit, orderBy, orderDirection, } = options
 
-  const chain: any[] = [mapEmoteResponse(currentEmote.toObject())] as any
+  const chain: any[] = [mapEmoteResponse({ ...currentEmote.toObject(), context: EMOTE_CONTEXTS.NOU })] as any
   let searching = true
   let totalChainLength = 1 // Initialize total length with the first emote
 
@@ -321,7 +434,7 @@ export async function findEmoteReplyChainInDB(emoteId: string, options: EmoteNou
     const repliedToEmote = await EmoteModel.findById(repliedToEmoteId)
 
     if (repliedToEmote) {
-      chain.unshift(mapEmoteResponse(repliedToEmote.toObject())) // Prepend to maintain order
+      chain.unshift(mapEmoteResponse({ ...repliedToEmote.toObject(), context: EMOTE_CONTEXTS.NOU } as any)) // Prepend to maintain order
       currentEmote = repliedToEmote // Set this as the current emote for the next iteration
       totalChainLength++ // Increment total length
     } else {

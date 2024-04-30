@@ -4,6 +4,7 @@ import { EMOTE_CONTEXTS } from '../util/contextUtil'
 import { EmoteResponse } from '../types/emote.types'
 
 // if there is input emote data, dont need emoteID arg
+// currently only calcing one context per emote
 export async function getContextOfEmote(inputEmote: EmoteResponse | null, emoteID: string | null) {
   let inputEmoteFromID = null
   if (!inputEmote) {
@@ -17,7 +18,7 @@ export async function getContextOfEmote(inputEmote: EmoteResponse | null, emoteI
   
   const inputEmoteFinal = inputEmote ?? inputEmoteFromID
 
-  // find and loop through all emotes at same timestamp as input emote that also have same sender (or whatever else is necessary)
+  // find and loop through all emotes at same timestamp as input emote (or whatever else emote data identifies the context)
   const queryOptions = {
     skip: 0,
     limit: 10,  // NOTE: this limits number of contexts at once
@@ -31,14 +32,14 @@ export async function getContextOfEmote(inputEmote: EmoteResponse | null, emoteI
   const sameTimestampEmotes = await fetchAllEmotesFromDB(queryOptions, true)
 
   // need to filter out inputEmoteFinal
-  const sameTimestampEmotesFiltered = sameTimestampEmotes.filter(emote => emote.id !== inputEmoteFinal?.id)
+  // const sameTimestampEmotesFiltered = sameTimestampEmotes.filter(emote => emote.id !== inputEmoteFinal?.id)
 
   // TODO: maybe in the future better to compute this using LLM
   // for each emote, need some way to detect if that emote identifies a specific context - think only way is to loop all contexts for each emote (but this doesnt feel right tbh) - this maybe needs to be separate fx but idk
 
   let discoveredContext = null
   
-  for (const sameTimestampEmote of Object.values(sameTimestampEmotesFiltered)) {
+  for (const sameTimestampEmote of Object.values(sameTimestampEmotes)) {
     // there will be certain contexts where this is the case and some where this is not the case
     const isSenderSameInSameTimestampEmoteAsMainEmote = sameTimestampEmote.senderTwitterUsername === inputEmoteFinal?.senderTwitterUsername
 
@@ -48,6 +49,10 @@ export async function getContextOfEmote(inputEmote: EmoteResponse | null, emoteI
 
         if (sameTimestampEmote.receiverSymbols.includes(EMOTE_CONTEXTS.NOU)) {
           discoveredContext = EMOTE_CONTEXTS.NOU
+        }
+
+        if (sameTimestampEmote.receiverSymbols.includes(EMOTE_CONTEXTS.NANA)) {
+          discoveredContext = EMOTE_CONTEXTS.NANA
         }
 
       }
