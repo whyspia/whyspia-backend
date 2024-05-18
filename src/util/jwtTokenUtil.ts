@@ -57,7 +57,7 @@ export function verifyAuthToken(token: string) {
 /**
  * Decodes the auth token if auth token is valid
  */
-function decodeAuthToken(token: string) {
+export function decodeAuthToken(token: string) {
   try {
     const decodedPayload = jwt.verify(token, jwtSecretKey, {
       algorithms: ['HS256'],
