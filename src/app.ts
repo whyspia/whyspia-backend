@@ -71,6 +71,10 @@ io.on('connection', (socket) => {
     io.emit('chat message', msg)
   })
 
+  socket.on("reconnect", () => {
+    console.log('reconnect inside connection')
+  })
+
   // Listen for disconnections - this is called by socketio itself in multiple scenarios - so, often triggered by not-our-code
   socket.on('disconnect', () => {
     console.log('a user disconnected from socketio')
@@ -92,4 +96,8 @@ io.on('connection', (socket) => {
       delete userDisconnectTimers[userID]
     }, 30000) // 600000 is 10 minutes in milliseconds - so function is called 10 minutes after socketio disconnect
   })
+})
+
+io.on("reconnect", () => {
+  console.log('reconnect outside connection')
 })
