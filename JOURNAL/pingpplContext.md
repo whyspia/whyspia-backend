@@ -1,0 +1,15 @@
+[[June 21st, 2024]]
+  - think i already know, but gonna brainstorm on data model for pingppl
+  - follows
+    - eventFollowed
+    - eventSender
+    - followSender
+  - DefinedEvents
+    - eventSymbol
+    - eventCreator
+    - (some fields for defining how events show on user's profile)
+  - SentEvents
+    - DefinedEventID  // you can get all data from here, but useful to just put other fields anyways
+    - eventSymbol
+    - eventSender
+  - will need to adjust notfications stuff
