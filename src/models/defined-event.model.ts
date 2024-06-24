@@ -1,7 +1,8 @@
 import mongoose from 'mongoose'
 
 export interface IDefinedEvent {
-  eventSymbol: string
+  eventName: string
+  eventDescription: string | null
   eventCreator: string
 }
   
@@ -10,13 +11,15 @@ interface IDefinedEventModel extends mongoose.Model<DefinedEventDocument> {
 }
 
 interface DefinedEventDocument extends mongoose.Document {
-  eventSymbol: string
+  eventName: string
+  eventDescription: string | null
   eventCreator: string
 }
 
 const DefinedEventSchema = new mongoose.Schema(
   {
-    eventSymbol: { type: String, required: true },
+    eventName: { type: String, required: true },
+    eventDescription: { type: String, required: false },
     eventCreator: { type: String, ref: 'UserToken', required: true },
   },
   {
