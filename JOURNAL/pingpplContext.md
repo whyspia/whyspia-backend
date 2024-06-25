@@ -5,11 +5,11 @@
     - eventSender
     - followSender
   - DefinedEvents
-    - eventSymbol
+    - eventName
     - eventCreator
     - (some fields for defining how events show on user's profile)
   - SentEvents
     - DefinedEventID  // you can get all data from here, but useful to just put other fields anyways
-    - eventSymbol
+    - eventName
     - eventSender
   - will need to adjust notfications stuff
