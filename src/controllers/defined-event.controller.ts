@@ -67,13 +67,14 @@ export async function fetchAllDefinedEvents(req: Request, res: Response) {
     // const search = (req.query.search as string) || null
     const eventCreator = (req.query.eventCreator as string) || null
     const eventName = (req.query.eventName as string) || null
+    const search = (req.query.search as string) || null
 
     const options: DefinedEventQueryOptions = {
       skip,
       limit,
       orderBy,
       orderDirection,
-      // search,
+      search,
       eventCreator,
       eventName,
     }

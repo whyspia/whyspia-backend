@@ -22,4 +22,5 @@ export type DefinedEventQueryOptions = {
   orderDirection: string
   eventCreator: string | null
   eventName: string | null
+  search: string | null
 }

@@ -52,7 +52,7 @@ export async function fetchAllDefinedEventsFromDB(
 ): Promise<DefinedEventResponse[]> {
   try {
 
-    const { skip, limit, orderBy, eventCreator, eventName } = options
+    const { skip, limit, orderBy, eventCreator, eventName, search } = options
     const orderDirection = options.orderDirection === 'asc' ? 1 : -1
 
     // Sorting Options
@@ -74,6 +74,14 @@ export async function fetchAllDefinedEventsFromDB(
       filterOptions.push({
         $or: [
           { eventName: { $regex: new RegExp("^" + eventName + "$", 'iu') } },
+        ],
+      })
+    }
+    if (search) {
+      filterOptions.push({
+        $or: [
+          { eventName: { $regex: new RegExp(search, 'iu') } },
+          { eventDescription: { $regex: new RegExp(search, 'iu') } },
         ],
       })
     }
