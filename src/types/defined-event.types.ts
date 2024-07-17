@@ -11,7 +11,8 @@ export type DefinedEventResponse = {
   eventCreator: string
   eventName: string
   eventDescription: string | null
-  timestamp: Date
+  createdAt: Date
+  updatedAt: Date
 }
 
 export type DefinedEventQueryOptions = {

@@ -1,10 +1,14 @@
 import { body, query } from 'express-validator'
 
 export const createEmoteNotifValidation = [
-  body('emoteID')
+  body('notifDataID')
     .notEmpty()
     .isString()
-    .withMessage('emoteID is not valid or null/empty'),
+    .withMessage('notifDataID is not valid or null/empty'),
+  body('notifType')
+    .notEmpty()
+    .isString()
+    .withMessage('notifType is not valid or null/empty'),
 ]
 
 export const fetchAllEmoteNotifsValidation = [

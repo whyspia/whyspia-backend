@@ -9,4 +9,5 @@ export enum EMOTE_CONTEXTS {
   VIBE_CAFE = 'Vibe Cafe',
   VIBE_CAMP = 'Vibe Camp',
   AKIYA_COLLECTIVE = 'Akiya Collective',
+  PINGPPL = 'pingppl',
 }

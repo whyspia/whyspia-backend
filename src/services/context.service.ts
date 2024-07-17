@@ -2,6 +2,7 @@
 import { fetchAllEmotesFromDB, fetchEmoteFromDB } from './emote.service'
 import { EMOTE_CONTEXTS } from '../util/contextUtil'
 import { EmoteResponse } from '../types/emote.types'
+import { NOTIF_TYPE } from '../models/emote-notif.model'
 
 // if there is input emote data, dont need emoteID arg
 // currently only calcing one context per emote
@@ -18,16 +19,20 @@ export async function getContextOfEmote(inputEmote: EmoteResponse | null, emoteI
   
   const inputEmoteFinal = inputEmote ?? inputEmoteFromID
 
+  if (inputEmoteFinal?.receiverSymbols.includes(EMOTE_CONTEXTS.PINGPPL)) {
+    return EMOTE_CONTEXTS.PINGPPL
+  }
+
   // find and loop through all emotes at same timestamp as input emote (or whatever else emote data identifies the context)
   const queryOptions = {
     skip: 0,
     limit: 10,  // NOTE: this limits number of contexts at once
-    orderBy: 'timestamp',
+    orderBy: 'createdAt',
     orderDirection: 'desc',
     senderTwitterUsername: null,
     receiverSymbols: null,
     sentSymbols: null,
-    createdAt: inputEmoteFinal?.timestamp,
+    createdAt: inputEmoteFinal?.createdAt,
   } as any
   const sameTimestampEmotes = await fetchAllEmotesFromDB(queryOptions, true)
 
@@ -70,4 +75,16 @@ export async function getContextOfEmote(inputEmote: EmoteResponse | null, emoteI
   
   return discoveredContext
 
+}
+
+export async function getContextOfNotif(inputEmote: EmoteResponse | null, notifType: NOTIF_TYPE) {
+  if (inputEmote) {
+    return await getContextOfEmote(inputEmote, null)
+  } else {
+    if (notifType === NOTIF_TYPE.PINGPPL_FOLLOW) {
+      return EMOTE_CONTEXTS.PINGPPL
+    }
+  }
+
+  return EMOTE_CONTEXTS.NO_CONTEXT
 }

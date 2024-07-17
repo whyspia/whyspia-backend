@@ -10,12 +10,15 @@ import {
   // deleteEmoteNotifInDB,
 } from '../services/emote-notif.service'
 import type { EmoteNotifQueryOptions, EmoteNotifResponse } from '../types/emote-notif.types'
+import { NOTIF_TYPE } from '../models/emote-notif.model'
 
 export async function createEmoteNotif(req: Request, res: Response) {
   try {
     const reqBody = req.body
     const requestData = {
-      emoteID: reqBody.emoteID,
+      notifDataID: reqBody.notifDataID,
+      notifType: reqBody.notifType,
+      initialNotifData: reqBody.initialNotifData,
     }
     const emoteNotif = await createEmoteNotifInDB(requestData)
     return handleSuccess(res, { emoteNotif })
@@ -33,12 +36,14 @@ export async function fetchAllEmoteNotifs(req: Request, res: Response) {
     const orderBy = req.query.orderBy as keyof EmoteNotifResponse
     const orderDirection =
       (req.query.orderDirection as string | undefined) ?? 'desc'
+    const notifType = req.query.notifType as NOTIF_TYPE ?? null
 
     const options: EmoteNotifQueryOptions = {
       skip,
       limit,
       orderBy,
       orderDirection,
+      notifType
     }
 
     const { emoteNotifs, hasReadCasuallyFalseCount, hasReadDirectlyFalseCount } = await fetchAllEmoteNotifsFromDB(options, decodedAccount)
@@ -78,12 +83,14 @@ export async function fetchAndUpdateAllEmoteNotifs(req: Request, res: Response) 
     const orderBy = req.body.orderBy as keyof EmoteNotifResponse
     const orderDirection =
       (req.body.orderDirection as string | undefined) ?? 'desc'
+    const notifType = req.query.notifType as NOTIF_TYPE
 
     const options: EmoteNotifQueryOptions = {
       skip,
       limit,
       orderBy,
       orderDirection,
+      notifType,
     }
 
     const { emoteNotifs, hasReadCasuallyFalseCount, hasReadDirectlyFalseCount } = await fetchAndUpdateAllEmoteNotifsInDB(options, decodedAccount)

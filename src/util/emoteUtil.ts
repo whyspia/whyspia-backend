@@ -9,11 +9,11 @@ export function mapEmoteResponse(
   }
 
   return {
-    id: emoteDoc._id.toString(),
+    id: emoteDoc?._id?.toString() || emoteDoc?.id,
     senderTwitterUsername: emoteDoc.senderTwitterUsername,
     receiverSymbols: emoteDoc.receiverSymbols,
     sentSymbols: emoteDoc.sentSymbols,
-    timestamp: (emoteDoc as any).createdAt,
+    createdAt: (emoteDoc as any).createdAt,
     context: (emoteDoc as any).context,
   }
 }
@@ -30,7 +30,7 @@ export function mapEmoteResponseWithNoUChainPreviews(
     senderTwitterUsername: emoteDoc.senderTwitterUsername,
     receiverSymbols: emoteDoc.receiverSymbols,
     sentSymbols: emoteDoc.sentSymbols,
-    timestamp: (emoteDoc as any).createdAt,
+    createdAt: (emoteDoc as any).createdAt,
     context: (emoteDoc as any).context,
     chainPreview: (emoteDoc as any).chainPreview,
     totalChainLength: (emoteDoc as any).totalChainLength,

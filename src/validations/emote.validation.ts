@@ -96,7 +96,7 @@ export const fetchEmoteReplyChainValidation = [
     .optional()
     .isString()
     .isIn([
-      'timestamp',
+      'createdAt',
     ])
     .withMessage('orderBy should be a valid string if provided'),
   query('orderDirection')

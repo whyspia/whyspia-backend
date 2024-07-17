@@ -5,7 +5,7 @@ export type EmoteRequest = {
   senderTwitterUsername: string
   receiverSymbols: string[]
   sentSymbols: string[]
-  timestamp: Date
+  createdAt: Date
 }
 
 export type EmoteResponse = {
@@ -13,7 +13,7 @@ export type EmoteResponse = {
   senderTwitterUsername: string
   receiverSymbols: string[]
   sentSymbols: string[]
-  timestamp: Date
+  createdAt: Date
   context?: string
 }
 
@@ -22,7 +22,7 @@ export type EmoteResponseWithNoUChainPreviews = {
   senderTwitterUsername: string
   receiverSymbols: string[]
   sentSymbols: string[]
-  timestamp: Date
+  createdAt: Date
   context?: string
   chainPreview: EmoteResponse[]
   totalChainLength: number

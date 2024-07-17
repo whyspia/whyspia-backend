@@ -13,6 +13,7 @@ export function mapDefinedEventResponse(
     eventCreator: definedEventDoc.eventCreator,
     eventName: definedEventDoc.eventName,
     eventDescription: definedEventDoc?.eventDescription || null,
-    timestamp: (definedEventDoc as any).updatedAt,
+    createdAt: (definedEventDoc as any).createdAt,
+    updatedAt: (definedEventDoc as any).updatedAt,
   }
 }

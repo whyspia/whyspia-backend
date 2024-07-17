@@ -91,7 +91,7 @@ io.on('connection', (socket) => {
         receiverSymbols: [EMOTE_CONTEXTS.PARALLEL],
         sentSymbols: ['im offline'],
       }
-      createEmoteInDB(requestData)
+      // createEmoteInDB(requestData)
       console.log('SENT EMOTE THAT USER IS NO LONGER ONLINE ON PARALLEL')
       delete userDisconnectTimers[userID]
     }, 30000) // 600000 is 10 minutes in milliseconds - so function is called 10 minutes after socketio disconnect

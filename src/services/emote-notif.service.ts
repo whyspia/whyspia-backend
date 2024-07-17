@@ -6,19 +6,20 @@ import type { EmoteNotifDocument } from '../models/emote-notif.model'
 import type { EmoteNotifQueryOptions, EmoteNotifRequest, EmoteNotifResponse, EmoteNotifSingleResponse } from '../types/emote-notif.types'
 import { InternalServerError } from './errors'
 import { mapEmoteNotifResponse } from '../util/emoteNotifUtil'
-import escapeStringRegexp from 'escape-string-regexp'
-import { createSymbolInDB, fetchAllSymbolsFromDB } from './symbol.service'
 import { DECODED_ACCOUNT } from '../util/jwtTokenUtil'
-import { getContextOfEmote } from './context.service'
+import { getContextOfEmote, getContextOfNotif } from './context.service'
 import { mapEmoteResponse } from '../util/emoteUtil'
+import { NOTIF_TYPE } from '../models/emote-notif.model'
 
 export async function createEmoteNotifInDB(emoteNotifData: Partial<EmoteNotifRequest>): Promise<EmoteNotifSingleResponse | null> {
   try {
     const emoteNotifBuildData = {
-      emoteID: emoteNotifData.emoteID as string,
+      notifDataID: emoteNotifData.notifDataID as string,
+      notifType: emoteNotifData.notifType as NOTIF_TYPE,
       receiverSymbol: emoteNotifData.receiverSymbol as string,
       hasReadCasually: false as boolean,
       hasReadDirectly: false as boolean,
+      initialNotifData: emoteNotifData.initialNotifData,
     }
     const emoteDoc = EmoteNotifModel.build(emoteNotifBuildData)
     const createdEmoteNotif = await EmoteNotifModel.create(emoteDoc)
@@ -36,44 +37,36 @@ export async function fetchAllEmoteNotifsFromDB(
 ): Promise<EmoteNotifResponse> {
   try {
 
-    const { skip, limit, orderBy, } = options
+    const { skip, limit, orderBy, notifType } = options
     const orderDirection = options.orderDirection === 'asc' ? 1 : -1
 
     // Sorting Options
     const sortOptions: any = {}
-    sortOptions[orderBy] = orderDirection
-    sortOptions._id = 1
+    sortOptions[`${orderBy}`] = orderDirection
+    sortOptions['_id'] = 1
 
     // Filter Options
     const filterOptions: FilterQuery<EmoteNotifDocument>[] = []
+
+    if (notifType) {
+      filterOptions.push({
+        $or: [
+          { notifType: { $regex: new RegExp("^" + notifType + "$", 'iu') } },
+        ],
+      })
+    }
 
     // Filter Query
     let filterQuery = {}
     if (filterOptions.length > 0) {
       filterQuery = { $and: filterOptions }
     }
-
+    
     const [emoteNotifDocs] = await EmoteNotifModel.aggregate([
+      { $match: filterQuery },
       {
-        $addFields: {
-          convertedEmoteID: { $toObjectId: "$emoteID" } // Convert emoteID from string to ObjectId
-        }
-      },
-      {
-        $lookup: {
-          from: 'emotes', // the collection to join
-          localField: 'convertedEmoteID', // field from the input documents
-          foreignField: '_id', // field from the documents of the "from" collection
-          as: 'emoteData' // output array field
-        }
-      },
-      {
-        $unwind: '$emoteData' // makes emoteData not an array with 1 element - instead returns that 1 element
-      },
-      {
-        // TODO: check this still works
         $match: {
-          receiverSymbol: decodedAccount.twitterUsername, // this makes sure that YOU only get YOUR notifications
+          "receiverSymbol": decodedAccount.twitterUsername  // this makes sure that YOU only get YOUR notifications
         }
       },
       {
@@ -84,37 +77,29 @@ export async function fetchAllEmoteNotifsFromDB(
             { $limit: limit }
           ],
           hasReadCasuallyFalseCount: [
-            { $match: { hasReadCasually: false } },
+            { $match: { 'hasReadCasually': false } },
             { $count: "count" }
           ],
           hasReadDirectlyFalseCount: [
-            { $match: { hasReadDirectly: false } },
+            { $match: { 'hasReadDirectly': false } },
             { $count: "count" }
           ]
         }
       }
     ]) as any
-    // .sort(sortOptions)
-    // .skip(skip)
-    // .limit(limit)
 
     // loop through emoteNotifs and add a new field for each item
-    // typically context will be calculated with the emoteData...but here emoteData is calced in DB query...so cant really do dat
+    // typically context will be calculated with the notifData...but here notifData is calced in DB query...so cant really do dat
     const emoteNotifsWithContext = await Promise.all(emoteNotifDocs?.documents?.map(async (emoteNotif: any) => {
-      const context = await getContextOfEmote(mapEmoteResponse(emoteNotif.emoteData), null)
-      return { ...emoteNotif, emoteData: { ...emoteNotif.emoteData, context } }
+      const emoteResponse = emoteNotif.notifType === NOTIF_TYPE.EMOTE ? mapEmoteResponse(emoteNotif.initialNotifData) : null
+      const context = await getContextOfNotif(emoteResponse, emoteNotif.notifType)
+      let notifData = emoteNotif.initialNotifData
+      return { ...emoteNotif, notifData: { ...notifData, context } }
     }))
 
     const emoteNotifs = emoteNotifsWithContext.map((doc: EmoteNotifDocument) => mapEmoteNotifResponse(doc) as EmoteNotifSingleResponse)
     const hasReadCasuallyFalseCount = emoteNotifDocs.hasReadCasuallyFalseCount.length > 0 ? emoteNotifDocs.hasReadCasuallyFalseCount[0].count : 0;
     const hasReadDirectlyFalseCount = emoteNotifDocs.hasReadDirectlyFalseCount.length > 0 ? emoteNotifDocs.hasReadDirectlyFalseCount[0].count : 0;
-
-    // loop through emoteNotifs and add a new field for each item
-    // typically context will be calculated with the emoteData...but here emoteData is calced in DB query...so cant really do dat
-    // const emoteNotifsWithContext = await Promise.all(emoteNotifs.map(async (emoteNotif: any) => {
-    //   const context = await getContextOfEmote(emoteNotif.emoteData.id)
-    //   return { ...emoteNotif, context }
-    // }))
 
     return { emoteNotifs, hasReadCasuallyFalseCount, hasReadDirectlyFalseCount  }
   } catch (error) {
@@ -192,14 +177,22 @@ export async function fetchAndUpdateAllEmoteNotifsInDB(
 ): Promise<Partial<EmoteNotifResponse>> {
   try {
     // Fetching part similar to fetchAllEmoteNotifsFromDB
-    const { skip, limit, orderBy } = options
+    const { skip, limit, orderBy, notifType } = options
     const orderDirection = options.orderDirection === 'asc' ? 1 : -1
 
     const sortOptions: any = {}
-    sortOptions[orderBy] = orderDirection
-    sortOptions._id = 1
+    sortOptions[`${orderBy}`] = orderDirection
+    sortOptions['_id'] = 1
 
     const filterOptions: FilterQuery<EmoteNotifDocument>[] = []
+
+    if (notifType) {
+      filterOptions.push({
+        $or: [
+          { notifType: { $regex: new RegExp("^" + notifType + "$", 'iu') } },
+        ],
+      })
+    }
 
     let filterQuery = {}
     if (filterOptions.length > 0) {
@@ -207,25 +200,10 @@ export async function fetchAndUpdateAllEmoteNotifsInDB(
     }
 
     const [emoteNotifDocs] = await EmoteNotifModel.aggregate([
-      {
-        $addFields: {
-          convertedEmoteID: { $toObjectId: "$emoteID" }
-        }
-      },
-      {
-        $lookup: {
-          from: 'emotes',
-          localField: 'convertedEmoteID',
-          foreignField: '_id',
-          as: 'emoteData'
-        }
-      },
-      {
-        $unwind: '$emoteData'
-      },
+      { $match: filterQuery },
       {
         $match: {
-          receiverSymbol: decodedAccount.twitterUsername,
+          "receiverSymbol": decodedAccount.twitterUsername  // this makes sure that YOU only get YOUR notifications
         }
       },
       {
@@ -236,11 +214,11 @@ export async function fetchAndUpdateAllEmoteNotifsInDB(
             { $limit: limit }
           ],
           hasReadCasuallyFalseCount: [
-            { $match: { hasReadCasually: false } },
+            { $match: { 'hasReadCasually': false } },
             { $count: "count" }
           ],
           hasReadDirectlyFalseCount: [
-            { $match: { hasReadDirectly: false } },
+            { $match: { 'hasReadDirectly': false } },
             { $count: "count" }
           ]
         }
@@ -287,7 +265,16 @@ export async function fetchAndUpdateAllEmoteNotifsInDB(
     const hasReadCasuallyFalseCount = updatedEmoteNotifDocs.hasReadCasuallyFalseCount.length > 0 ? updatedEmoteNotifDocs.hasReadCasuallyFalseCount[0].count : 0
     const hasReadDirectlyFalseCount = updatedEmoteNotifDocs.hasReadDirectlyFalseCount.length > 0 ? updatedEmoteNotifDocs.hasReadDirectlyFalseCount[0].count : 0
 
-    const emoteNotifs = emoteNotifDocs?.documents?.map((doc: EmoteNotifDocument) => mapEmoteNotifResponse(doc) as EmoteNotifSingleResponse)
+    // loop through emoteNotifs and add a new field for each item
+    // typically context will be calculated with the notifData...but here notifData is calced in DB query...so cant really do dat
+    const emoteNotifsWithContext = await Promise.all(emoteNotifDocs?.documents?.map(async (emoteNotif: any) => {
+      const emoteResponse = emoteNotif.notifType === NOTIF_TYPE.EMOTE ? mapEmoteResponse(emoteNotif.initialNotifData) : null
+      const context = await getContextOfNotif(emoteResponse, emoteNotif.notifType)
+      let notifData = emoteNotif.initialNotifData
+      return { ...emoteNotif, notifData: { ...notifData, context } }
+    }))
+
+    const emoteNotifs = emoteNotifsWithContext?.map((doc: EmoteNotifDocument) => mapEmoteNotifResponse(doc) as EmoteNotifSingleResponse)
 
     return { emoteNotifs, hasReadCasuallyFalseCount, hasReadDirectlyFalseCount }
   } catch (error) {

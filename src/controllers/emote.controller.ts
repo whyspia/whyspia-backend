@@ -19,12 +19,13 @@ export async function createEmote(req: Request, res: Response) {
     const reqBody = req.body
     const receiverSymbols = (reqBody.receiverSymbols as string | undefined)?.split(',') ?? []
     const sentSymbols = (reqBody.sentSymbols as string | undefined)?.split(',') ?? []
+    const bAgentDecidedSendNotifToReceiver = reqBody.bAgentDecidedSendNotifToReceiver ?? false
     const requestData = {
       senderTwitterUsername: decodedAccount.twitterUsername,
       receiverSymbols,
       sentSymbols,
     }
-    const emote = await createEmoteInDB(requestData)
+    const emote = await createEmoteInDB(requestData, bAgentDecidedSendNotifToReceiver)
     return handleSuccess(res, { emote })
   } catch (error) {
     console.error('Error occurred while creating emote', error)
@@ -43,13 +44,14 @@ export async function createEmotes(req: Request, res: Response) {
     for (const emoteData of emotesData) {
       const receiverSymbols = (emoteData.receiverSymbols) ?? []
       const sentSymbols = (emoteData.sentSymbols) ?? []
+      const bAgentDecidedSendNotifToReceiver = (emoteData.bAgentDecidedSendNotifToReceiver) ?? false
       const requestData = {
         senderTwitterUsername: decodedAccount.twitterUsername,
         receiverSymbols,
         sentSymbols,
-        timestamp: currentDateTime,
+        createdAt: currentDateTime,
       }
-      const emote = await createEmoteInDB(requestData)
+      const emote = await createEmoteInDB(requestData, bAgentDecidedSendNotifToReceiver)
       results.push(emote)
     }
 
