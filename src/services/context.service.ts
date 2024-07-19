@@ -81,7 +81,7 @@ export async function getContextOfNotif(inputEmote: EmoteResponse | null, notifT
   if (inputEmote) {
     return await getContextOfEmote(inputEmote, null)
   } else {
-    if (notifType === NOTIF_TYPE.PINGPPL_FOLLOW) {
+    if (notifType === NOTIF_TYPE.PINGPPL_FOLLOW || notifType === NOTIF_TYPE.PINGPPL_SENTEVENT) {
       return EMOTE_CONTEXTS.PINGPPL
     }
   }

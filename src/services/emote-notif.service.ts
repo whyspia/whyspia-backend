@@ -94,7 +94,7 @@ export async function fetchAllEmoteNotifsFromDB(
       const emoteResponse = emoteNotif.notifType === NOTIF_TYPE.EMOTE ? mapEmoteResponse(emoteNotif.initialNotifData) : null
       const context = await getContextOfNotif(emoteResponse, emoteNotif.notifType)
       let notifData = emoteNotif.initialNotifData
-      return { ...emoteNotif, notifData: { ...notifData, context } }
+      return { ...emoteNotif, notifData: { ...notifData, context }, context }
     }))
 
     const emoteNotifs = emoteNotifsWithContext.map((doc: EmoteNotifDocument) => mapEmoteNotifResponse(doc) as EmoteNotifSingleResponse)
@@ -271,7 +271,7 @@ export async function fetchAndUpdateAllEmoteNotifsInDB(
       const emoteResponse = emoteNotif.notifType === NOTIF_TYPE.EMOTE ? mapEmoteResponse(emoteNotif.initialNotifData) : null
       const context = await getContextOfNotif(emoteResponse, emoteNotif.notifType)
       let notifData = emoteNotif.initialNotifData
-      return { ...emoteNotif, notifData: { ...notifData, context } }
+      return { ...emoteNotif, notifData: { ...notifData }, context }
     }))
 
     const emoteNotifs = emoteNotifsWithContext?.map((doc: EmoteNotifDocument) => mapEmoteNotifResponse(doc) as EmoteNotifSingleResponse)

@@ -23,6 +23,7 @@ export function mapEmoteNotifResponse(
     receiverSymbol: emoteNotifDoc.receiverSymbol,
     hasReadCasually: emoteNotifDoc.hasReadCasually,
     hasReadDirectly: emoteNotifDoc.hasReadDirectly,
+    context: (emoteNotifDoc as any).context,
     createdAt: (emoteNotifDoc as any).createdAt,
   }
 }
