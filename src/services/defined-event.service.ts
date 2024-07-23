@@ -36,9 +36,13 @@ export async function fetchDefinedEventFromDB({
     const definedEventDoc = await DefinedEventModel.findOne({
       $or: [
         { _id: definedEventId && definedEventId !== '' ? definedEventId : null, },
-        { eventName: { $regex: new RegExp("^" + eventName + "$", 'iu') }, }
+        {
+          $and: [
+            { eventName: { $regex: new RegExp("^" + eventName + "$", 'iu') } },
+            { eventCreator: { $regex: new RegExp("^" + eventCreator + "$", 'iu') } }
+          ]
+        }
       ],
-      eventCreator: { $regex: new RegExp("^" + eventCreator + "$", 'iu') },
     })
     return definedEventDoc ? mapDefinedEventResponse(definedEventDoc as any) : null
   } catch (error) {

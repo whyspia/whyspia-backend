@@ -42,9 +42,9 @@ export async function createDefinedEvent(req: Request, res: Response) {
 export async function fetchDefinedEvent(req: Request, res: Response) {
   try {
     // const decodedAccount = (req as any).decodedAccount as DECODED_ACCOUNT
-    const eventCreator = req.query.eventCreator as string
-    const definedEventId = req.query.definedEventId as string
-    const eventName = req.query.eventName as string
+    const eventCreator = req.query.eventCreator as string ?? null
+    const definedEventId = req.query.definedEventId as string ?? null
+    const eventName = req.query.eventName as string ?? null
     const definedEvent = await fetchDefinedEventFromDB({
       definedEventId,
       eventName,

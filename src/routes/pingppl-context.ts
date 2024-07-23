@@ -15,6 +15,7 @@ import {
   // fetchDefinedEventValidation,
   updateDefinedEventValidation,
   deleteDefinedEventValidation,
+  fetchDefinedEventSingleValidation,
 } from '../validations/defined-event.validation'
 import { createDefinedEventAndThenSentEvent, createSentEvent, fetchAllSentEvents } from '../controllers/sent-event.controller'
 import { createDefinedEventAndThenSentEventValidation, createSentEventValidation, fetchAllSentEventsValidation } from '../validations/sent-event.validation'
@@ -33,7 +34,7 @@ pingpplContextRouter.post(
 
 pingpplContextRouter.get(
   '/definedEvent/single',
-  // fetchDefinedEventValidation,
+  fetchDefinedEventSingleValidation,
   validateRequest,
   optionalAuthenticateAndSetAccount,
   fetchDefinedEvent

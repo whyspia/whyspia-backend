@@ -37,6 +37,16 @@ export const fetchAllDefinedEventsValidation = [
     .withMessage('search should be a valid string if provided'),
 ]
 
+export const fetchDefinedEventSingleValidation = [
+  oneOf([
+    query('definedEventId').notEmpty().isString(),
+    [
+      query('eventName').notEmpty().isString(),
+      query('eventCreator').notEmpty().isString()
+    ]
+  ], 'Either definedEventId or (eventName and eventCreator) must be provided'),
+]
+
 export const updateDefinedEventValidation = [
   body('definedEventId')
     .notEmpty()
