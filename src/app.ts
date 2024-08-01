@@ -12,14 +12,29 @@ import { requestLogger, setCorrelationId } from './middleware'
 import { routes } from './routes'
 import { getFrontendURL } from './util/seoConstantsUtil'
 import { decodeAuthToken } from './util/jwtTokenUtil'
-import { createEmoteInDB } from './services/emote.service'
 import { EMOTE_CONTEXTS } from './util/contextUtil'
 import { UserTokenModel } from './models/user-token.model'
 
+const CLIENT_HOST_DOMAIN = config.get<string>('client.hostDomain')
+
 const app = express()
 
+const allowedOriginPattern = new RegExp(`^https:\/\/(\\w+\\.)?${CLIENT_HOST_DOMAIN.replace('.', '\\.')}$`)
+
+const allowedOrigins = [allowedOriginPattern, "http://localhost:3000"]
+
+const corsOptions = {
+  origin: function (origin: any, callback: any) {
+    if (allowedOrigins.some(pattern => pattern instanceof RegExp ? pattern.test(origin) : pattern === origin) || !origin) {
+      callback(null, true)
+    } else {
+      callback(new Error(`${origin} not allowed by CORS`))
+    }
+  }
+}
+
 // Middlewares
-app.use(cors())
+app.use(cors(corsOptions))
 app.use(express.json())
 app.use(express.urlencoded({ extended: false }))
 app.use(setCorrelationId)

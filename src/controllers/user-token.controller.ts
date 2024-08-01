@@ -15,6 +15,7 @@ import type {
 } from '../types/user-token.types'
 
 const CLIENT_HOST_URL = config.get<string>('client.hostUrl')
+const CLIENT_HOST_DOMAIN = config.get<string>('client.hostDomain')
 
 // Initiate login of user by generating DB entry containing request token and secret
 export async function initiateTwitterLogin(req: Request, res: Response) {
@@ -49,7 +50,9 @@ export async function completeTwitterLogin(req: Request, res: Response) {
     res.cookie('tt', twitterVerification.twitterJwt, {
       expires: twitterVerification.validUntil,
       httpOnly: false,
-      secure: false,
+      secure: true,
+      domain: `.${CLIENT_HOST_DOMAIN}`,  // supposed to be domain that cookie is set on
+      sameSite: 'none',
     })
 
     res.redirect(CLIENT_HOST_URL)
