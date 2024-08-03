@@ -1,5 +1,5 @@
 import config from 'config'
-import type { Request, Response } from 'express'
+import type { CookieOptions, Request, Response } from 'express'
 
 import { handleError, handleSuccess } from '../lib/base'
 import {
@@ -46,14 +46,20 @@ export async function completeTwitterLogin(req: Request, res: Response) {
       oAuthVerifier: reqParams.oauth_verifier,
     })
 
-    // This is where auth cookie is named
-    res.cookie('tt', twitterVerification.twitterJwt, {
+    const cookieOptions = {
       expires: twitterVerification.validUntil,
       httpOnly: false,
       secure: true,
-      domain: `.${CLIENT_HOST_DOMAIN}`,  // supposed to be domain that cookie is set on
       sameSite: 'none',
-    })
+    } as CookieOptions
+
+    if (!CLIENT_HOST_URL.includes('localhost')) {
+      // for some reason the domain attribute makes cookie not work on localhost
+      cookieOptions['domain'] = `.${CLIENT_HOST_DOMAIN}`  // supposed to be domain that cookie is set on
+    }
+
+    // this is where auth cookie is named
+    res.cookie('tt', twitterVerification.twitterJwt, cookieOptions)
 
     res.redirect(CLIENT_HOST_URL)
 
