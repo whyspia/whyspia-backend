@@ -5,6 +5,7 @@ export enum NOTIF_TYPE {
   PINGPPL_FOLLOW = 'PINGPPL_FOLLOW',
   PINGPPL_SENTEVENT = 'PINGPPL_SENTEVENT',
   NOU_EMOTE_SENT = 'NOU_EMOTE_SENT',
+  TAU_SENT = 'TAU_SENT',
 }
 
 export interface IEmoteNotif {

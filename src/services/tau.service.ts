@@ -1,4 +1,3 @@
-import mongoose from 'mongoose'
 import type { FilterQuery } from 'mongoose'
 
 import { TAUModel } from '../models/tau.model'
@@ -6,6 +5,8 @@ import type { TAUDocument } from '../models/tau.model'
 import type { TAUQueryOptions, TAURequest, TAUResponse } from '../types/tau.types'
 import { InternalServerError } from './errors'
 import { mapTAUResponse } from '../util/tauUtil'
+import { createEmoteNotifInDB } from './emote-notif.service'
+import { NOTIF_TYPE } from '../models/emote-notif.model'
 
 export async function createTAUInDB(tauData: Partial<TAURequest>): Promise<TAUResponse | null> {
   try {
@@ -17,6 +18,9 @@ export async function createTAUInDB(tauData: Partial<TAURequest>): Promise<TAURe
     }
     const tauDoc = TAUModel.build(tauBuildData)
     const createdTAU = await TAUModel.create(tauDoc)
+
+    await createEmoteNotifInDB({ notifType: NOTIF_TYPE.TAU_SENT, notifDataID: createdTAU._id.toString(), receiverSymbol: tauData.receiverSymbol, initialNotifData: mapTAUResponse(createdTAU) })
+
     return mapTAUResponse(createdTAU)
   } catch (error) {
     console.error('error occurred while creating tau in DB', error)
@@ -107,7 +111,7 @@ export async function deleteTAUInDB(tauID: string, senderSymbol: string): Promis
       throw new Error('TAU not found or you are not authorized to delete it')
     }
   } catch (error) {
-    console.error('Error occurred while deleting tau from DB', error)
-    throw new InternalServerError('Failed to delete tau from DB')
+    console.error('error occurred while deleting tau from DB', error)
+    throw new InternalServerError('failed to delete tau from DB')
   }
 }

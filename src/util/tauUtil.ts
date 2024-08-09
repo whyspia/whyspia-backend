@@ -9,7 +9,7 @@ export function mapTAUResponse(
   }
 
   return {
-    id: tauDoc._id.toString(),
+    id: tauDoc?._id?.toString() || tauDoc?.id,
     senderSymbol: tauDoc?.senderSymbol,
     receiverSymbol: tauDoc?.receiverSymbol,
     additionalMessage: tauDoc?.additionalMessage,

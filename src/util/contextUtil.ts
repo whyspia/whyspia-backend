@@ -10,4 +10,5 @@ export enum EMOTE_CONTEXTS {
   VIBE_CAMP = 'Vibe Camp',
   AKIYA_COLLECTIVE = 'Akiya Collective',
   PINGPPL = 'pingppl',
+  TAU = 'thinking about u',
 }
