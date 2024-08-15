@@ -39,23 +39,20 @@ export async function createEmoteInDB(emoteData: Partial<EmoteRequest>, bAgentDe
     const emoteDoc = EmoteModel.build(emoteBuildData)
     const createdEmote = await EmoteModel.create(emoteDoc)
 
-    // if one of receiverSymbol is X user, then do notification stuff. Otherwise, no need (although will be need for autonomous agents at some point probably)
-    // const pattern = /^@?(\w){1,15}$/
-    // const isPossibleXUser = pattern.test(emoteData.receiverSymbol as string)
-    // if (isPossibleXUser) {
-    //   await createEmoteNotifInDB({ emoteID: createdEmote._id.toString() })
-    // }
-
-    // const pattern = /^@?(\w){1,15}$/
+    const pattern = /^@?(\w){1,15}$/
     emoteData.receiverSymbols?.forEach(async (receiverSymbol) => {
-      // const isPossibleXUser = pattern.test(receiverSymbol) && !Object.values(EMOTE_CONTEXTS).includes(receiverSymbol as any)
+      // const isReceiverAnEmoteContext = Object.values(EMOTE_CONTEXTS).includes(receiverSymbol as any)
+      const isPossibleXUser = pattern.test(receiverSymbol)
       // const isPingpplContext = receiverSymbol as EMOTE_CONTEXTS === EMOTE_CONTEXTS.PINGPPL
       // const containsPingPlanAndPingOrPing = emoteData.sentSymbols?.some(symbol => 
       //   symbol.includes("PINGPLAN&PING:") || symbol.includes("PING:")
       // ) && !emoteData.sentSymbols?.some(symbol => symbol === "PINGPLAN:")
+      
+      // if one of receiverSymbol is X user, then do notification stuff. Otherwise, no need (although will be need for autonomous agents at some point probably)
+
       // tbh i dont thing agent should have this control to send notif like this, but clients i create do - so that's basically what this is
       // maybe one day people can choose to send notif with their emote, but receiver needs to opt in to even see those OR find the list of these somewhere
-      const shouldWeSendNotif = bAgentDecidedSendNotifToReceiver
+      const shouldWeSendNotif = bAgentDecidedSendNotifToReceiver && isPossibleXUser
 
       if (shouldWeSendNotif) {
         await createEmoteNotifInDB({ notifType: NOTIF_TYPE.EMOTE, notifDataID: createdEmote._id.toString(), receiverSymbol, initialNotifData: mapEmoteResponse(createdEmote) })
