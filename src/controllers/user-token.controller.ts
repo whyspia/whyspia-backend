@@ -19,8 +19,9 @@ const CLIENT_HOST_DOMAIN = config.get<string>('client.hostDomain')
 
 // Initiate login of user by generating DB entry containing request token and secret
 export async function initiateTwitterLogin(req: Request, res: Response) {
+  const returnHere  = req.body.returnHere as string
   try {
-    const twitterVerification = await initiateTwitterLoginDB()
+    const twitterVerification = await initiateTwitterLoginDB(returnHere)
     return handleSuccess(res, { twitterVerification })
   } catch (error) {
     console.error('Error occurred while initiating twitter login', error)
@@ -61,7 +62,7 @@ export async function completeTwitterLogin(req: Request, res: Response) {
     // this is where auth cookie is named
     res.cookie('tt', twitterVerification.twitterJwt, cookieOptions)
 
-    res.redirect(CLIENT_HOST_URL)
+    res.redirect(reqParams?.returnHere)
 
     // return handleSuccess(res, { twitterVerification })
     return

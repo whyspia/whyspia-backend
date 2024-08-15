@@ -25,9 +25,12 @@ const twitterCallbackUrl = `${backendHostUrl}/user-token/completeTwitterLogin`
 
 const twitterBearerToken = config.get<string>('auth.twitter.bearerToken')
 
-export async function initiateTwitterLoginDB(): Promise<TwitterLoginInitiation> {
+export async function initiateTwitterLoginDB(returnHere: string): Promise<TwitterLoginInitiation> {
+  // lol i learned u have to encode this entire url or you cant pass custom query params
+  const twitterCallbackUrlEncoded = encodeURIComponent(twitterCallbackUrl + `?returnHere=${returnHere}`)
+
   const requestData = {
-    url: `https://api.twitter.com/oauth/request_token?oauth_callback=${twitterCallbackUrl}`,
+    url: `https://api.twitter.com/oauth/request_token?oauth_callback=${twitterCallbackUrlEncoded}`,
     method: 'POST',
   }
 
