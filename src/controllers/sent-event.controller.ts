@@ -6,13 +6,9 @@ import {
   createSentEventInDB,
   fetchAllSentEventsFromDB,
   fetchSentEventFromDB,
-  // updateSentEventInDB,
-  // deleteSentEventInDB,
 } from '../services/sent-event.service'
 import type { SentEventQueryOptions, SentEventResponse } from '../types/sent-event.types'
 import { createDefinedEventInDB } from '../services/defined-event.service'
-import { EMOTE_CONTEXTS } from '../util/contextUtil'
-import { createEmoteInDB } from '../services/emote.service'
 
 export async function createSentEvent(req: Request, res: Response) {
   try {
@@ -26,12 +22,12 @@ export async function createSentEvent(req: Request, res: Response) {
     const sentEvent = await createSentEventInDB(requestData);
 
     // send ze emote out
-    const emoteRequestData = {
-      senderTwitterUsername: decodedAccount.twitterUsername,
-      receiverSymbols: [EMOTE_CONTEXTS.PINGPPL],
-      sentSymbols: ["PING: " + reqBody.eventName],
-    }
-    await createEmoteInDB(emoteRequestData, false) // notif not going to pingppl context receiver, but there will be custom logic for who notif goes to in this method
+    // const emoteRequestData = {
+    //   senderTwitterUsername: decodedAccount.twitterUsername,
+    //   receiverSymbols: [EMOTE_CONTEXTS.PINGPPL],
+    //   sentSymbols: ["PING: " + reqBody.eventName],
+    // }
+    // await createEmoteInDB(emoteRequestData, false) // notif not going to pingppl context receiver, but there will be custom logic for who notif goes to in this method
 
     return handleSuccess(res, { sentEvent })
   } catch (error) {
@@ -60,12 +56,12 @@ export async function createDefinedEventAndThenSentEvent(req: Request, res: Resp
     const sentEvent = await createSentEventInDB(sentEventRequestData);
 
     // send ze emote out
-    const emoteRequestData = {
-      senderTwitterUsername: decodedAccount.twitterUsername,
-      receiverSymbols: [EMOTE_CONTEXTS.PINGPPL],
-      sentSymbols: ["PINGPLAN&PING: " + reqBody.eventName],
-    }
-    await createEmoteInDB(emoteRequestData, false) // notif not going to pingppl context receiver, but there will be custom logic for who notif goes to in this method
+    // const emoteRequestData = {
+    //   senderTwitterUsername: decodedAccount.twitterUsername,
+    //   receiverSymbols: [EMOTE_CONTEXTS.PINGPPL],
+    //   sentSymbols: ["PINGPLAN&PING: " + reqBody.eventName],
+    // }
+    // await createEmoteInDB(emoteRequestData, false) // notif not going to pingppl context receiver, but there will be custom logic for who notif goes to in this method
 
     return handleSuccess(res, { definedEvent, sentEvent })
   } catch (error) {

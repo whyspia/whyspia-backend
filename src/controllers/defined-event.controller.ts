@@ -10,8 +10,6 @@ import {
   deleteDefinedEventInDB,
 } from '../services/defined-event.service'
 import type { DefinedEventQueryOptions, DefinedEventResponse } from '../types/defined-event.types'
-import { EMOTE_CONTEXTS } from '../util/contextUtil'
-import { createEmoteInDB } from '../services/emote.service'
 
 export async function createDefinedEvent(req: Request, res: Response) {
   try {
@@ -25,12 +23,12 @@ export async function createDefinedEvent(req: Request, res: Response) {
     const definedEvent = await createDefinedEventInDB(requestData);
 
     // send ze emote out
-    const emoteRequestData = {
-      senderTwitterUsername: decodedAccount.twitterUsername,
-      receiverSymbols: [EMOTE_CONTEXTS.PINGPPL],
-      sentSymbols: ["PINGPLAN: " + reqBody.eventName],
-    }
-    await createEmoteInDB(emoteRequestData, false)
+    // const emoteRequestData = {
+    //   senderTwitterUsername: decodedAccount.twitterUsername,
+    //   receiverSymbols: [EMOTE_CONTEXTS.PINGPPL],
+    //   sentSymbols: ["PINGPLAN: " + reqBody.eventName],
+    // }
+    // await createEmoteInDB(emoteRequestData, false)
 
     return handleSuccess(res, { definedEvent })
   } catch (error) {

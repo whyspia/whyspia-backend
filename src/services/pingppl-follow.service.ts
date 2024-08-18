@@ -44,9 +44,12 @@ export async function fetchAllPingpplFollowsFromDB(
     const filterOptions: FilterQuery<PingpplFollowDocument>[] = []
 
     if (eventNameFollowed) {
+      // had to do this, otherwise passed in var can cause issues with special chars
+      const escapedEventNameFollowed = eventNameFollowed.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') // Escape special characters
+
       filterOptions.push({
         $or: [
-          { eventNameFollowed: { $regex: new RegExp("^" + eventNameFollowed + "$", 'iu') } },
+          { eventNameFollowed: { $regex: new RegExp("^" + escapedEventNameFollowed + "$", 'iu') } },
         ],
       })
     }
