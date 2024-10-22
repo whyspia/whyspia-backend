@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-floating-promises */
 // import timeout from 'connect-timeout'
-import cors from 'cors'
+import cors, { CorsOptions } from 'cors'
 import dotenv from 'dotenv'
 dotenv.config()
 import config from 'config'
@@ -23,14 +23,15 @@ const allowedOriginPattern = new RegExp(`^https:\/\/(\\w+\\.)?${CLIENT_HOST_DOMA
 
 const allowedOrigins = [allowedOriginPattern, "http://localhost:3000"]
 
-const corsOptions = {
+const corsOptions: CorsOptions = {
   origin: function (origin: any, callback: any) {
     if (allowedOrigins.some(pattern => pattern instanceof RegExp ? pattern.test(origin) : pattern === origin) || !origin) {
       callback(null, true)
     } else {
       callback(new Error(`${origin} not allowed by CORS`))
     }
-  }
+  },
+  credentials: CLIENT_HOST_DOMAIN.includes('localhost'),
 }
 
 // Middlewares
