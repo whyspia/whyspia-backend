@@ -12,6 +12,7 @@ export interface IUserV2 {
   particleUUID: string
   wallets: Wallet[]
   primaryWallet: string
+  displayName: string
 }
 
 interface IUserV2Model extends mongoose.Model<UserV2Document> {
@@ -22,6 +23,7 @@ interface UserV2Document extends mongoose.Document {
   particleUUID: string
   wallets: Wallet[]
   primaryWallet: string
+  displayName: string
 }
 
 const UserV2Schema = new mongoose.Schema(
@@ -41,7 +43,11 @@ const UserV2Schema = new mongoose.Schema(
     primaryWallet: {
       type: String,
       required: true,
-    }
+    },
+    displayName: {
+      type: String,
+      required: true,
+    },
   },
   {
     timestamps: true,

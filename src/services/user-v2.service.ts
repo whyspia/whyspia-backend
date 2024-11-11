@@ -14,12 +14,11 @@ import type {
 import { generateAuthToken } from '../util/jwtTokenUtil'
 import { mapUserTokenResponse } from '../util/userTokenUtil'
 import { InternalServerError } from './errors'
-import { UserV2Document, UserV2Model, Wallet } from '../models/user-v2.model'
+import { IUserV2, UserV2Document, UserV2Model, Wallet } from '../models/user-v2.model'
 import crypto from 'crypto'
 import { NonceModel } from '../models/nonce.model'
-import { UserV2LoginCompletion } from '../types/user-v2.types'
-import { mapUserV2TokenResponse } from '../util/userV2Util'
-import { String } from 'aws-sdk/clients/cloudhsm'
+import { UserV2LoginCompletion, UserV2TokenResponse, } from '../types/user-v2.types'
+import { formatWalletAddress, mapUserV2TokenResponse } from '../util/userV2Util'
 
 const requestPromise = util.promisify(request)
 
@@ -35,7 +34,7 @@ function generateNonce(whyspiaUserID: string): string {
 export async function initiateLoginDB({ particleUUID, wallets, primaryWallet }: {
   particleUUID: string
   wallets: Wallet[]
-  primaryWallet: String
+  primaryWallet: string
 }): Promise<string> {
   const existingUserDoc = await UserV2Model.findOne({ particleUUID })
   let newUserDoc = null
@@ -44,6 +43,7 @@ export async function initiateLoginDB({ particleUUID, wallets, primaryWallet }: 
       particleUUID,
       wallets,
       primaryWallet,
+      displayName: formatWalletAddress(primaryWallet) // in very beginning, default displayName is formatted primaryWallet
     })
     await UserV2Model.create(newUserDoc)
   }
@@ -247,5 +247,40 @@ export async function fetchAllTwitterUserTokensFromWeb2(
   } catch (error) {
     console.error('Error occurred while fetching user tokens', error)
     throw new InternalServerError('Error occurred while fetching user tokens')
+  }
+}
+
+export async function updateUserTokenInDB(
+{
+  updatedDisplayName,
+  userTokenID,
+}: {
+  updatedDisplayName: string
+  userTokenID: string
+}): Promise<UserV2TokenResponse | null> {
+  try {
+    const updateData: Partial<IUserV2> = {}
+
+    if (updatedDisplayName) {
+      updateData.displayName = updatedDisplayName
+    }
+
+    // if (updatedEventDescription) {
+    //   updateData.eventDescription = updatedEventDescription
+    // }
+
+    const updatedUserTokenDoc = await UserV2Model.findOneAndUpdate(
+      {
+        _id: userTokenID && userTokenID !== '' ? userTokenID : null,
+      },
+      updateData,
+      { new: true }
+    )
+
+    return updatedUserTokenDoc ? mapUserV2TokenResponse(updatedUserTokenDoc as any) : null
+    
+  } catch (error) {
+    console.error('error occurred while updating user token in DB', error)
+    throw new InternalServerError('failed to update user token in DB')
   }
 }

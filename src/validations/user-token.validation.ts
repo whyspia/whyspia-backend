@@ -1,4 +1,4 @@
-import { oneOf, query, header } from 'express-validator'
+import { oneOf, query, header, body } from 'express-validator'
 
 export const fetchUserTokenValidation = [
   oneOf(
@@ -34,4 +34,11 @@ export const checkExistingTwitterProfileValidation = [
     .notEmpty()
     .isString()
     .withMessage('username cannot be empty and should be a valid string'),
+]
+
+export const updateUserTokenValidation = [
+  body('updatedDisplayName')
+    .notEmpty()
+    .isString()
+    .withMessage('updatedDisplayName cannot be empty and should be a valid string'),
 ]

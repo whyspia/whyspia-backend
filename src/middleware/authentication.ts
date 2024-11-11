@@ -6,7 +6,7 @@ import { handleError } from '../lib/base'
 import { UnAuthenticatedError } from '../services/errors'
 import {
   verifyAuthToken,
-  verifyTwitterAuthTokenAndReturnAccount,
+  verifyAuthTokenAndReturnAccount,
 } from '../util/jwtTokenUtil'
 import { CORRELATION_ID } from './correlationId'
 import { getCurrentDateTime } from './logger'
@@ -94,7 +94,7 @@ export async function authenticateAndSetAccount(
   }
 
   const [, authToken] = authorizationHeader.split(' ')
-  const decodedAccount = await verifyTwitterAuthTokenAndReturnAccount(authToken)
+  const decodedAccount = await verifyAuthTokenAndReturnAccount(authToken)
   const correlationId = (req.headers[CORRELATION_ID] ?? '') as string
   console.info(
     `${getCurrentDateTime()} :: ${correlationId} :: Account : ${JSON.stringify(
@@ -133,7 +133,7 @@ export async function optionalAuthenticateAndSetAccount(
     next()
     return
   }
-  const decodedAccount = await verifyTwitterAuthTokenAndReturnAccount(authToken)
+  const decodedAccount = await verifyAuthTokenAndReturnAccount(authToken)
   console.info(`Account : ${JSON.stringify(decodedAccount)}`)
   if (!decodedAccount) {
     console.error(INVALID_AUTH_TOKEN_ERR_LOG)

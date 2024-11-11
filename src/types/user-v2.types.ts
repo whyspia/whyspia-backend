@@ -10,6 +10,7 @@ export type UserV2TokenResponse = {
   particleUUID: string
   wallets: Wallet[]
   primaryWallet: string
+  displayName: string
 }
 
 export type UserTokensQueryOptions = {

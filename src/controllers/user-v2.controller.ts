@@ -2,15 +2,9 @@ import config from 'config'
 import type { CookieOptions, Request, Response } from 'express'
 
 import { handleError, handleSuccess } from '../lib/base'
-import {
-  fetchAllTwitterUserTokensFromWeb2,
-} from '../services/user-token.service'
-import type {
-  UserTokenResponse,
-  UserTokensQueryOptions,
-} from '../types/user-token.types'
-import { completeLoginDB, fetchUserV2TokenFromDB, initiateLoginDB } from '../services/user-v2.service'
+import { completeLoginDB, fetchUserV2TokenFromDB, initiateLoginDB, updateUserTokenInDB } from '../services/user-v2.service'
 import { UserV2TokenResponse } from '../types/user-v2.types'
+import { DECODED_ACCOUNT } from '../util/jwtTokenUtil'
 
 const CLIENT_HOST_URL = config.get<string>('client.hostUrl')
 const CLIENT_HOST_DOMAIN = config.get<string>('client.hostDomain')
@@ -71,36 +65,34 @@ export async function completeLogin(req: Request, res: Response) {
   }
 }
 
-// Update User Token Web2 data
-// export async function updateTwitterUserToken(req: Request, res: Response) {
-//   try {
-//     const reqBody = req.body
-//     const decodedAccount = (req as any).decodedAccount as DECODED_ACCOUNT
+// like when changing displayName
+export async function updateUserToken(req: Request, res: Response) {
+  try {
+    const reqBody = req.body
+    const decodedAccount = (req as any).decodedAccount as DECODED_ACCOUNT
+    const userTokenID = decodedAccount?.id as string
 
-//     const userTokenRequest: Partial<IUserToken> = {
-//       walletAddress: decodedAccount.walletAddress.toLowerCase(),
-//       name: reqBody.name as string,
-//       username: reqBody.username as string,
-//       bio: reqBody.bio as string,
-//       profilePhoto: reqBody.profilePhoto as string,
-//     }
-//     const updatedUserToken = await updateUserTokenWeb2ProfileInDB(
-//       userTokenRequest
-//     )
+    const userTokenRequest = {
+      updatedDisplayName: reqBody.updatedDisplayName as string,
+      userTokenID,
+    }
+    const updatedUserToken = await updateUserTokenInDB(
+      userTokenRequest
+    )
 
-//     return handleSuccess(res, { userToken: updatedUserToken })
-//   } catch (error) {
-//     console.error(
-//       'Error occurred while updating the user token web2 profile',
-//       error
-//     )
-//     return handleError(
-//       res,
-//       error,
-//       'Unable to update the user token web2 profile'
-//     )
-//   }
-// }
+    return handleSuccess(res, { userToken: updatedUserToken })
+  } catch (error) {
+    console.error(
+      'error occurred while updating the user token',
+      error
+    )
+    return handleError(
+      res,
+      error,
+      'unable to update the user token'
+    )
+  }
+}
 
 export async function fetchUserV2Token(req: Request, res: Response) {
   try {
@@ -127,33 +119,33 @@ export async function fetchUserV2Token(req: Request, res: Response) {
   }
 }
 
-export async function fetchAllTwitterUserTokens(req: Request, res: Response) {
-  try {
-    const skip = Number.parseInt(req.query.skip as string) || 0
-    const limit = Number.parseInt(req.query.limit as string) || 10
-    const orderBy = req.query.orderBy as keyof UserTokenResponse
-    const orderDirection =
-      (req.query.orderDirection as string | undefined) ?? 'desc'
-    const search = (req.query.search as string) || null
-    const filterWallets =
-      (req.query.filterWallets as string | undefined)?.split(',') ?? []
+// export async function fetchAllTwitterUserTokens(req: Request, res: Response) {
+//   try {
+//     const skip = Number.parseInt(req.query.skip as string) || 0
+//     const limit = Number.parseInt(req.query.limit as string) || 10
+//     const orderBy = req.query.orderBy as keyof UserTokenResponse
+//     const orderDirection =
+//       (req.query.orderDirection as string | undefined) ?? 'desc'
+//     const search = (req.query.search as string) || null
+//     const filterWallets =
+//       (req.query.filterWallets as string | undefined)?.split(',') ?? []
 
-    const options: UserTokensQueryOptions = {
-      skip,
-      limit,
-      orderBy,
-      orderDirection,
-      search,
-      filterWallets,
-    }
+//     const options: UserTokensQueryOptions = {
+//       skip,
+//       limit,
+//       orderBy,
+//       orderDirection,
+//       search,
+//       filterWallets,
+//     }
 
-    const userTokens = await fetchAllTwitterUserTokensFromWeb2(options)
-    return handleSuccess(res, { userTokens })
-  } catch (error) {
-    console.error(
-      'Error occurred while fetching all the ideamarket posts',
-      error
-    )
-    return handleError(res, error, 'Unable to fetch the ideamarket posts')
-  }
-}
+//     const userTokens = await fetchAllTwitterUserTokensFromWeb2(options)
+//     return handleSuccess(res, { userTokens })
+//   } catch (error) {
+//     console.error(
+//       'Error occurred while fetching all the ideamarket posts',
+//       error
+//     )
+//     return handleError(res, error, 'Unable to fetch the ideamarket posts')
+//   }
+// }

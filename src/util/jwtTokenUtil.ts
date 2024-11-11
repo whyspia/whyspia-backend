@@ -1,8 +1,8 @@
 import config from 'config'
 import jwt from 'jsonwebtoken'
 
-import { UserTokenModel } from '../models/user-token.model'
-import type { UserTokenResponse } from '../types/user-token.types'
+import { UserV2Model, Wallet } from '../models/user-v2.model'
+import { UserV2TokenResponse } from '../types/user-v2.types'
 
 const jwtSecretKey: string = config.get('jwt.secretKey')
 const jwtExpiry: number = config.get('jwt.expiry')
@@ -71,30 +71,32 @@ export function decodeAuthToken(token: string) {
 }
 
 /**
- * Verifies the validity of the twitter auth token and returns the TwitterUserToken
+ * Verifies the validity of the auth token and returns the UserToken
  */
-export async function verifyTwitterAuthTokenAndReturnAccount(
+export async function verifyAuthTokenAndReturnAccount(
   token: string
-): Promise<UserTokenResponse | null> {
+): Promise<UserV2TokenResponse | null> {
   try {
     const accountId = decodeAuthToken(token)
     if (!accountId) {
       return null
     }
 
-    const twitterUserToken = await UserTokenModel.findById(accountId)
-    if (!twitterUserToken) {
+    const userToken = await UserV2Model.findById(accountId)
+    if (!userToken) {
       return null
     }
 
     return {
-      id: twitterUserToken._id,
-      twitterUsername: twitterUserToken.twitterUsername || null,
-      twitterUserId: twitterUserToken.twitterUserId || null,
+      id: userToken._id,
+      particleUUID: userToken.particleUUID,
+      wallets: userToken.wallets,
+      primaryWallet: userToken?.primaryWallet,
+      displayName: userToken?.displayName,
     }
   } catch (error) {
     console.error(
-      'Error occurred while fetching twitter user token from auth token',
+      'Error occurred while fetching user token from auth token',
       error
     )
     return null
@@ -103,6 +105,8 @@ export async function verifyTwitterAuthTokenAndReturnAccount(
 
 export type DECODED_ACCOUNT = {
   id: string
-  twitterUserId: string
-  twitterUsername: string
+  particleUUID: string
+  wallets: Wallet
+  primaryWallet: string
+  displayName: string
 }
