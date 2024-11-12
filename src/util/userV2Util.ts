@@ -1,9 +1,9 @@
-import { UserV2TokenResponse } from '../types/user-v2.types'
+import { UserV2TokenPrivateResponse, UserV2TokenPublicResponse } from '../types/user-v2.types'
 import { UserV2Document } from '../models/user-v2.model'
 
-export function mapUserV2TokenResponse(
+export function mapUserV2TokenPrivateResponse(
   userTokenDoc: UserV2Document | null
-): UserV2TokenResponse | null {
+): UserV2TokenPrivateResponse | null {
   if (!userTokenDoc) {
     return null
   }
@@ -12,6 +12,19 @@ export function mapUserV2TokenResponse(
     id: userTokenDoc._id.toString(),
     particleUUID: userTokenDoc.particleUUID,
     wallets: userTokenDoc.wallets,
+    primaryWallet: userTokenDoc.primaryWallet,
+    displayName: userTokenDoc.displayName,
+  }
+}
+
+export function mapUserV2TokenPublicResponse(
+  userTokenDoc: UserV2Document | null
+): UserV2TokenPublicResponse | null {
+  if (!userTokenDoc) {
+    return null
+  }
+
+  return {
     primaryWallet: userTokenDoc.primaryWallet,
     displayName: userTokenDoc.displayName,
   }

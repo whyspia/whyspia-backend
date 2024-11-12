@@ -2,7 +2,7 @@ import config from 'config'
 import jwt from 'jsonwebtoken'
 
 import { UserV2Model, Wallet } from '../models/user-v2.model'
-import { UserV2TokenResponse } from '../types/user-v2.types'
+import { UserV2TokenPrivateResponse } from '../types/user-v2.types'
 
 const jwtSecretKey: string = config.get('jwt.secretKey')
 const jwtExpiry: number = config.get('jwt.expiry')
@@ -75,7 +75,7 @@ export function decodeAuthToken(token: string) {
  */
 export async function verifyAuthTokenAndReturnAccount(
   token: string
-): Promise<UserV2TokenResponse | null> {
+): Promise<UserV2TokenPrivateResponse | null> {
   try {
     const accountId = decodeAuthToken(token)
     if (!accountId) {

@@ -17,8 +17,8 @@ import { InternalServerError } from './errors'
 import { IUserV2, UserV2Document, UserV2Model, Wallet } from '../models/user-v2.model'
 import crypto from 'crypto'
 import { NonceModel } from '../models/nonce.model'
-import { UserV2LoginCompletion, UserV2TokenResponse, } from '../types/user-v2.types'
-import { formatWalletAddress, mapUserV2TokenResponse } from '../util/userV2Util'
+import { UserV2LoginCompletion, UserV2TokenPrivateResponse, UserV2TokenPublicResponse } from '../types/user-v2.types'
+import { formatWalletAddress, mapUserV2TokenPrivateResponse, mapUserV2TokenPublicResponse } from '../util/userV2Util'
 
 const requestPromise = util.promisify(request)
 
@@ -168,11 +168,11 @@ export async function completeLoginDB({
   return {
     jwt: authToken,
     validUntil,
-    userToken: mapUserV2TokenResponse(userDoc),
+    userToken: mapUserV2TokenPrivateResponse(userDoc),
   }
 }
 
-export async function fetchUserV2TokenFromDB({
+export async function fetchUserV2TokenPrivateFromDB({
   userTokenID,
   // twitterUsername,
 }: {
@@ -194,7 +194,26 @@ export async function fetchUserV2TokenFromDB({
     return null
   }
 
-  return mapUserV2TokenResponse(userTokenDoc)
+  return mapUserV2TokenPrivateResponse(userTokenDoc)
+}
+
+export async function fetchUserV2TokenPublicFromDB({
+  primaryWallet,
+}: {
+  primaryWallet: string | null
+}) {
+  let userTokenDoc: UserV2Document | null = null
+
+  if (primaryWallet) {
+    userTokenDoc = await UserV2Model.findOne({ primaryWallet })
+  }
+
+  if (!userTokenDoc) {
+    return null
+  }
+
+  // in mapping, remove private data from returned data since dis public data
+  return mapUserV2TokenPublicResponse(userTokenDoc)
 }
 
 export async function fetchAllTwitterUserTokensFromWeb2(
@@ -257,7 +276,7 @@ export async function updateUserTokenInDB(
 }: {
   updatedDisplayName: string
   userTokenID: string
-}): Promise<UserV2TokenResponse | null> {
+}): Promise<UserV2TokenPrivateResponse | null> {
   try {
     const updateData: Partial<IUserV2> = {}
 
@@ -277,7 +296,7 @@ export async function updateUserTokenInDB(
       { new: true }
     )
 
-    return updatedUserTokenDoc ? mapUserV2TokenResponse(updatedUserTokenDoc as any) : null
+    return updatedUserTokenDoc ? mapUserV2TokenPrivateResponse(updatedUserTokenDoc as any) : null
     
   } catch (error) {
     console.error('error occurred while updating user token in DB', error)

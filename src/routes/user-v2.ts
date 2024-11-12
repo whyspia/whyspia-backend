@@ -7,10 +7,11 @@ import { authenticateAndSetAccount, optionalAuthenticateAndSetAccount } from '..
 import { validateRequest } from '../middleware/validateRequest'
 import {
   fetchAllUserTokensValidation,
-  fetchUserTokenValidation,
+  fetchUserTokenPrivateValidation,
+  fetchUserTokenPublicValidation,
   updateUserTokenValidation,
 } from '../validations/user-token.validation'
-import { completeLogin, fetchUserV2Token, initiateLogin, updateUserToken } from '../controllers/user-v2.controller'
+import { completeLogin, fetchUserV2TokenPrivate, fetchUserV2TokenPublic, initiateLogin, updateUserToken } from '../controllers/user-v2.controller'
 
 export const userV2TokenRouter = express.Router()
 
@@ -26,13 +27,19 @@ userV2TokenRouter.post(
   completeLogin
 )
 
-// TODO: i think i need another route just like this except only for public data - this has some non-public data
 userV2TokenRouter.get(
-  '/single',
-  fetchUserTokenValidation,
+  '/single-private',
+  fetchUserTokenPrivateValidation,
   validateRequest,
   authenticateAndSetAccount,
-  fetchUserV2Token
+  fetchUserV2TokenPrivate
+)
+
+userV2TokenRouter.get(
+  '/single-public',
+  fetchUserTokenPublicValidation,
+  validateRequest,
+  fetchUserV2TokenPublic
 )
 
 userV2TokenRouter.get(

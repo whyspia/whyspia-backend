@@ -1,19 +1,22 @@
 import { oneOf, query, header, body } from 'express-validator'
 
-export const fetchUserTokenValidation = [
+export const fetchUserTokenPrivateValidation = [
+  header('Authorization')
+    .notEmpty()
+    .withMessage('Authorization header is required'),
+]
+
+export const fetchUserTokenPublicValidation = [
   oneOf(
     [
-      header('Authorization')
+      query('primaryWallet')
         .notEmpty()
-        .withMessage('Authorization header is required'),
-      query('twitterUsername')
-        .notEmpty()
-        .withMessage('twitterUsername is required'),
-      query('twitterUserTokenID')
-        .notEmpty()
-        .withMessage('twitterUserTokenID is required'),
+        .withMessage('primaryWallet is required'),
+      // query('twitterUserTokenID')
+      //   .notEmpty()
+      //   .withMessage('twitterUserTokenID is required'),
     ],
-    'Either twitterUsername or walletAddress is mandatory'
+    'Either primaryWallet is mandatory'
   ),
 ]
 

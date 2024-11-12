@@ -12,7 +12,7 @@ import { validateRequest } from '../middleware/validateRequest'
 import {
   checkExistingTwitterProfileValidation,
   fetchAllUserTokensValidation,
-  fetchUserTokenValidation,
+  fetchUserTokenPrivateValidation,
 } from '../validations/user-token.validation'
 
 export const userTokenRouter = express.Router()
@@ -32,7 +32,7 @@ userTokenRouter.get(
 
 userTokenRouter.get(
   '/single',
-  fetchUserTokenValidation,
+  fetchUserTokenPrivateValidation,
   validateRequest,
   optionalAuthenticateAndSetAccount,
   fetchTwitterUserToken

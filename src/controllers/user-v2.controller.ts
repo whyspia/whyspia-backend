@@ -2,8 +2,8 @@ import config from 'config'
 import type { CookieOptions, Request, Response } from 'express'
 
 import { handleError, handleSuccess } from '../lib/base'
-import { completeLoginDB, fetchUserV2TokenFromDB, initiateLoginDB, updateUserTokenInDB } from '../services/user-v2.service'
-import { UserV2TokenResponse } from '../types/user-v2.types'
+import { completeLoginDB, fetchUserV2TokenPrivateFromDB, fetchUserV2TokenPublicFromDB, initiateLoginDB, updateUserTokenInDB } from '../services/user-v2.service'
+import { UserV2TokenPrivateResponse } from '../types/user-v2.types'
 import { DECODED_ACCOUNT } from '../util/jwtTokenUtil'
 
 const CLIENT_HOST_URL = config.get<string>('client.hostUrl')
@@ -94,28 +94,45 @@ export async function updateUserToken(req: Request, res: Response) {
   }
 }
 
-export async function fetchUserV2Token(req: Request, res: Response) {
+export async function fetchUserV2TokenPrivate(req: Request, res: Response) {
   try {
     const decodedAccount = (req as any).decodedAccount as
-      | UserV2TokenResponse
+      | UserV2TokenPrivateResponse
       | null
       | undefined
     // const twitterUsername = req.query.twitterUsername
     //   ? (req.query.twitterUsername as string)
     //   : null
-    const userTokenID = req.query.userTokenID
-      ? (req.query.twitterUserTokenID as string)
-      : (decodedAccount?.id as string)
+    const userTokenID = decodedAccount?.id as string
 
-    const userToken = await fetchUserV2TokenFromDB({
+    const userToken = await fetchUserV2TokenPrivateFromDB({
       userTokenID,
       // twitterUsername,
     })
 
     return handleSuccess(res, { userToken })
   } catch (error) {
-    console.error('error occurred while fetching userv2 token', error)
-    return handleError(res, error, 'unable to fetch the userv2 token')
+    console.error('error occurred while fetching private userv2 token', error)
+    return handleError(res, error, 'unable to fetch the private userv2 token')
+  }
+}
+
+export async function fetchUserV2TokenPublic(req: Request, res: Response) {
+  try {
+    // const twitterUsername = req.query.twitterUsername
+    //   ? (req.query.twitterUsername as string)
+    //   : null
+    const primaryWallet = req.query.primaryWallet as string
+
+    const userToken = await fetchUserV2TokenPublicFromDB({
+      primaryWallet,
+      // twitterUsername,
+    })
+
+    return handleSuccess(res, { userToken })
+  } catch (error) {
+    console.error('error occurred while fetching public userv2 token', error)
+    return handleError(res, error, 'unable to fetch the public userv2 token')
   }
 }
 
