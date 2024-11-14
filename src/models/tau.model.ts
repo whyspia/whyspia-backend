@@ -1,25 +1,25 @@
 import mongoose from 'mongoose'
 
 export interface ITAU {
-  senderSymbol: string
-  receiverSymbol: string
+  senderPrimaryWallet: string
+  receiverPrimaryWallet: string
   additionalMessage: string
 }
-  
+
 interface ITAUModel extends mongoose.Model<TAUDocument> {
   build(attr: ITAU): TAUDocument
 }
 
 interface TAUDocument extends mongoose.Document {
-  senderSymbol: string
-  receiverSymbol: string
+  senderPrimaryWallet: string
+  receiverPrimaryWallet: string
   additionalMessage: string
 }
 
 const TAUSchema = new mongoose.Schema(
   {
-    senderSymbol: { type: String, ref: 'UserToken', required: true },
-    receiverSymbol: { type: String, ref: 'UserToken', required: true },
+    senderPrimaryWallet: { type: String, ref: 'UserV2', required: true },
+    receiverPrimaryWallet: { type: String, ref: 'UserV2', required: true },
     additionalMessage: { type: String, required: false },
   },
   {

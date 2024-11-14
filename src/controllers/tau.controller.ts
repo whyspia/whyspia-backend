@@ -15,8 +15,8 @@ export async function createTAU(req: Request, res: Response) {
     const decodedAccount = (req as any).decodedAccount as DECODED_ACCOUNT
     const reqBody = req.body
     const requestData = {
-      senderSymbol: decodedAccount.twitterUsername,
-      receiverSymbol: reqBody.receiverSymbol,
+      senderPrimaryWallet: decodedAccount.primaryWallet,
+      receiverPrimaryWallet: reqBody.receiverPrimaryWallet,
       additionalMessage: reqBody.additionalMessage ?? '',
     }
     const tau = await createTAUInDB(requestData)
@@ -33,12 +33,12 @@ export async function fetchTAU(req: Request, res: Response) {
     const tauID = req.query.tauID as string
     const tau = await fetchTAUFromDB({
       tauID,
-      senderSymbol: decodedAccount?.twitterUsername,
+      requestingPrimaryWallet: decodedAccount?.primaryWallet,
     })
     return handleSuccess(res, { tau })
   } catch (error) {
-    console.error('Error occurred while fetching tau', error)
-    return handleError(res, error, 'Unable to fetch tau')
+    console.error('error occurred while fetching tau', error)
+    return handleError(res, error, 'unable to fetch tau')
   }
 }
 
@@ -50,13 +50,15 @@ export async function fetchAllTAUs(req: Request, res: Response) {
     const orderBy = req.query.orderBy as keyof TAUResponse
     const orderDirection =
       (req.query.orderDirection as string | undefined) ?? 'desc'
-    const senderSymbol = (req.query.senderSymbol as string) || null
-    const receiverSymbol = (req.query.receiverSymbol as string) || null
+    const senderPrimaryWallet = (req.query.senderPrimaryWallet as string) || null
+    const receiverPrimaryWallet = (req.query.receiverPrimaryWallet as string) || null
     const additionalMessage = (req.query.additionalMessage as string) || null
 
     // you gotta either be the sender or the receiver to fetch TAUs
-    if (decodedAccount.twitterUsername !== senderSymbol && decodedAccount.twitterUsername !== receiverSymbol) {
-      return handleError(res, new Error('unauthorized access to fetch all taus'), 'unauthorized')
+    if (decodedAccount.primaryWallet !== senderPrimaryWallet && decodedAccount.primaryWallet !== receiverPrimaryWallet) {
+      const error = new Error('unauthorized access to fetch all taus')
+      console.error('unauthorized access to fetch all taus', error)
+      return handleError(res, error, 'unauthorized')
     }
 
     const options: TAUQueryOptions = {
@@ -64,8 +66,8 @@ export async function fetchAllTAUs(req: Request, res: Response) {
       limit,
       orderBy,
       orderDirection,
-      senderSymbol,
-      receiverSymbol,
+      senderPrimaryWallet,
+      receiverPrimaryWallet,
       additionalMessage,
     }
 
@@ -83,13 +85,13 @@ export async function deleteTAU(req: Request, res: Response) {
     const tauID = req.body.tauID as string
 
     // Fetch the TAU to check the sender
-    const tau = await fetchTAUFromDB({ tauID, senderSymbol: decodedAccount.twitterUsername })
+    const tau = await fetchTAUFromDB({ tauID, requestingPrimaryWallet: decodedAccount.primaryWallet, mustBeSender: true })
 
     if (!tau) {
       return handleError(res, new Error('TAU not found or you are not authorized to delete it'), 'Unable to delete tau')
     }
 
-    await deleteTAUInDB(tauID, decodedAccount.twitterUsername)
+    await deleteTAUInDB(tauID, decodedAccount.primaryWallet)
     return handleSuccess(res, { message: `TAU with ID ${tauID} has been deleted` })
   } catch (error) {
     console.error('Error occurred while deleting tau', error)

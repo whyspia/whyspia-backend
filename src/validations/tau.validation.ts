@@ -1,10 +1,10 @@
 import { body, query, oneOf } from 'express-validator'
 
 export const createTAUValidation = [
-  body('receiverSymbol')
+  body('receiverPrimaryWallet')
     .notEmpty()
     .isString()
-    .withMessage('receiverSymbol is not valid or null/empty'),
+    .withMessage('receiverPrimaryWallet is not valid or null/empty'),
 ]
 
 export const fetchTAUSingleValidation = [
@@ -31,14 +31,14 @@ export const fetchAllTAUsValidation = [
     .optional()
     .isString()
     .withMessage('orderDirection should be a valid string if provided'),
-  query('senderSymbol')
+  query('senderPrimaryWallet')
     .optional()
     .isString()
-    .withMessage('senderSymbol should be a valid string if provided'),
-  query('receiverSymbol')
+    .withMessage('senderPrimaryWallet should be a valid string if provided'),
+  query('receiverPrimaryWallet')
     .optional()
     .isString()
-    .withMessage('receiverSymbol should be a valid string if provided'),
+    .withMessage('receiverPrimaryWallet should be a valid string if provided'),
   query('additionalMessage')
     .optional()
     .isString()
