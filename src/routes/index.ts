@@ -10,10 +10,11 @@ import { emoteNotifRouter } from './emote-notif'
 import { parallelRouter } from './parallel-context'
 import { pingpplContextRouter } from './pingppl-context'
 import { tauRouter } from './tau'
+import { savedPersonRouter } from './saved-person'
 
 const routes = Router()
 
-// Routers
+// routers
 routes.use('/general', generalRouter)
 routes.use('/user-token', userTokenRouter)
 routes.use('/user-v2', userV2TokenRouter)
@@ -24,5 +25,6 @@ routes.use('/emote-notif', emoteNotifRouter)
 routes.use('/parallel', parallelRouter)
 routes.use('/pingppl', pingpplContextRouter)
 routes.use('/tau', tauRouter)
+routes.use('/saved-person', savedPersonRouter)
 
 export { routes }
