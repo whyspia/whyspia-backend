@@ -4,20 +4,12 @@ import request from 'request'
 import util from 'util'
 import { ethers } from 'ethers'
 
-import { UserTokenModel } from '../models/user-token.model'
-import type { UserTokenDocument } from '../models/user-token.model'
-import type {
-  TwitterLoginCompletion,
-  TwitterLoginInitiation,
-  TwitterUserTokensQueryOptions,
-} from '../types/user-token.types'
 import { generateAuthToken } from '../util/jwtTokenUtil'
-import { mapUserTokenResponse } from '../util/userTokenUtil'
 import { InternalServerError } from './errors'
 import { IUserV2, UserV2Document, UserV2Model, Wallet } from '../models/user-v2.model'
 import crypto from 'crypto'
 import { NonceModel } from '../models/nonce.model'
-import { UserV2LoginCompletion, UserV2TokenPrivateResponse, UserV2TokenPublicResponse } from '../types/user-v2.types'
+import { UserV2LoginCompletion, UserV2TokenPrivateResponse, UserV2TokensQueryOptions } from '../types/user-v2.types'
 import { formatWalletAddress, mapUserV2TokenPrivateResponse, mapUserV2TokenPublicResponse } from '../util/userV2Util'
 
 const requestPromise = util.promisify(request)
@@ -216,8 +208,8 @@ export async function fetchUserV2TokenPublicFromDB({
   return mapUserV2TokenPublicResponse(userTokenDoc)
 }
 
-export async function fetchAllTwitterUserTokensFromWeb2(
-  options: TwitterUserTokensQueryOptions
+export async function fetchAllUserV2TokensFromDB(
+  options: UserV2TokensQueryOptions
 ) {
   try {
     const { skip, limit, orderBy, search, filterWallets } = options
@@ -229,18 +221,15 @@ export async function fetchAllTwitterUserTokensFromWeb2(
     sortOptions._id = 1
 
     // Filter Options
-    const filterOptions: FilterQuery<UserTokenDocument>[] = []
+    const filterOptions: FilterQuery<UserV2Document>[] = []
     if (filterWallets.length > 0) {
-      filterOptions.push({ twitterUsername: { $in: filterWallets } })
+      filterOptions.push({ primaryWallet: { $in: filterWallets } })
     }
     if (search) {
       filterOptions.push({
         $or: [
-          //{ name: { $regex: escapeStringRegexp(search), $options: 'i' } },
-          //{ username: { $regex: escapeStringRegexp(search), $options: 'i' } },
-          //{ bio: { $regex: escapeStringRegexp(search), $options: 'i' } },
           {
-            twitterUsername: {
+            primaryWallet: {
               $regex: new RegExp(search, 'i'),
             },
           },
@@ -254,18 +243,18 @@ export async function fetchAllTwitterUserTokensFromWeb2(
       filterQuery = { $and: filterOptions }
     }
 
-    const twitterUserTokens = await UserTokenModel
+    const userV2Tokens = await UserV2Model
       .find(filterQuery)
       .sort(sortOptions)
       .skip(skip)
       .limit(limit)
 
-    return twitterUserTokens.map((twitterUserToken) =>
-      mapUserTokenResponse(twitterUserToken)
+    return userV2Tokens.map((userV2Token) =>
+      mapUserV2TokenPrivateResponse(userV2Token)
     )
   } catch (error) {
-    console.error('Error occurred while fetching user tokens', error)
-    throw new InternalServerError('Error occurred while fetching user tokens')
+    console.error('error occurred while fetching userv2 tokens', error)
+    throw new InternalServerError('error occurred while fetching userv2 tokens')
   }
 }
 

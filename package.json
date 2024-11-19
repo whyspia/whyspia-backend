@@ -4,7 +4,7 @@
   "description": "whyspia api",
   "main": "app.ts",
   "repository": "https://github.com/whyspia/whyspia-backend.git",
-  "author": "IdeaMarket",
+  "author": "shmoji",
   "license": "MIT",
   "scripts": {
     "build": "tsc",

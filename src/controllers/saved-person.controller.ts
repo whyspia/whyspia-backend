@@ -77,7 +77,7 @@ export async function updateSavedPerson(req: Request, res: Response) {
     const decodedAccount = (req as any).decodedAccount as DECODED_ACCOUNT
     const savedPersonID = req.body.savedPersonID as string
     const updatedData = {
-      chosenName: req.body.chosenName,
+      chosenName: req.body.updatedChosenName,
     }
     const updatedSavedPerson = await updateSavedPersonInDB({
       requestingPrimaryWallet: decodedAccount?.primaryWallet,

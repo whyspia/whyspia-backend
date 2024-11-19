@@ -33,7 +33,7 @@ export const fetchAllSavedPersonValidation = [
 
 export const updateSavedPersonValidation = [
   body('savedPersonID').notEmpty().isString().withMessage('savedPersonID is not valid or null/empty'),
-  body('chosenName').isString().withMessage('chosenName must be a string'),
+  body('updatedChosenName').isString().withMessage('updatedChosenName must be a string'),
 ]
 
 export const deleteSavedPersonValidation = [

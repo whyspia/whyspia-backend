@@ -18,7 +18,7 @@ export type UserV2TokenPublicResponse = {
   displayName: string
 }
 
-export type UserTokensQueryOptions = {
+export type UserV2TokensQueryOptions = {
   skip: number
   limit: number
   orderBy: keyof UserV2TokenPublicResponse
@@ -35,13 +35,4 @@ export type UserV2LoginCompletion = {
   jwt: string
   validUntil: Date
   userToken: UserV2TokenPrivateResponse | null
-}
-
-export type TwitterUserTokensQueryOptions = {
-  skip: number
-  limit: number
-  orderBy: keyof UserV2TokenPublicResponse
-  orderDirection: string
-  search: string | null
-  filterWallets: string[]
 }
