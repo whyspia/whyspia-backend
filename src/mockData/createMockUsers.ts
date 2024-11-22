@@ -26,10 +26,10 @@ const createMockUsers = async (numUsers: number) => {
       particleUUID: `particleUUID-${i + 1}`,
       wallets: generateRandomWallets(2), // Generate 2 random wallets for each user
       primaryWallet: `0x${Math.random().toString(16).slice(2, 42)}`,
-      displayName: `mock user ${i + 1}`,
+      chosenPublicName: `mock user ${i + 1}`,
     }
     await UserV2Model.create(user)
-    console.log(`created User: ${user.displayName}`)
+    console.log(`created User: ${user.chosenPublicName}`)
   }
 }
 

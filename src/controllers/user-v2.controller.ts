@@ -65,7 +65,7 @@ export async function completeLogin(req: Request, res: Response) {
   }
 }
 
-// like when changing displayName
+// like when changing chosenPublicName
 export async function updateUserToken(req: Request, res: Response) {
   try {
     const reqBody = req.body
@@ -73,7 +73,7 @@ export async function updateUserToken(req: Request, res: Response) {
     const userTokenID = decodedAccount?.id as string
 
     const userTokenRequest = {
-      updatedDisplayName: reqBody.updatedDisplayName as string,
+      updatedChosenPublicName: reqBody.updatedChosenPublicName as string,
       userTokenID,
     }
     const updatedUserToken = await updateUserTokenInDB(

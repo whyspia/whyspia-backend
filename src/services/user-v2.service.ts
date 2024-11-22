@@ -35,7 +35,7 @@ export async function initiateLoginDB({ particleUUID, wallets, primaryWallet }: 
       particleUUID,
       wallets,
       primaryWallet,
-      displayName: formatWalletAddress(primaryWallet) // in very beginning, default displayName is formatted primaryWallet
+      chosenPublicName: formatWalletAddress(primaryWallet) // in very beginning, default chosenPublicName is formatted primaryWallet
     })
     await UserV2Model.create(newUserDoc)
   }
@@ -260,17 +260,17 @@ export async function fetchAllUserV2TokensFromDB(
 
 export async function updateUserTokenInDB(
 {
-  updatedDisplayName,
+  updatedChosenPublicName,
   userTokenID,
 }: {
-  updatedDisplayName: string
+  updatedChosenPublicName: string
   userTokenID: string
 }): Promise<UserV2TokenPrivateResponse | null> {
   try {
     const updateData: Partial<IUserV2> = {}
 
-    if (updatedDisplayName) {
-      updateData.displayName = updatedDisplayName
+    if (updatedChosenPublicName) {
+      updateData.chosenPublicName = updatedChosenPublicName
     }
 
     // if (updatedEventDescription) {

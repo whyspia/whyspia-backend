@@ -13,7 +13,7 @@ export function mapUserV2TokenPrivateResponse(
     particleUUID: userTokenDoc.particleUUID,
     wallets: userTokenDoc.wallets,
     primaryWallet: userTokenDoc.primaryWallet,
-    displayName: userTokenDoc.displayName,
+    chosenPublicName: userTokenDoc.chosenPublicName,
   }
 }
 
@@ -26,7 +26,7 @@ export function mapUserV2TokenPublicResponse(
 
   return {
     primaryWallet: userTokenDoc.primaryWallet,
-    displayName: userTokenDoc.displayName,
+    chosenPublicName: userTokenDoc.chosenPublicName,
   }
 }
 

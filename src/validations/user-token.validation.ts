@@ -40,8 +40,8 @@ export const checkExistingTwitterProfileValidation = [
 ]
 
 export const updateUserTokenValidation = [
-  body('updatedDisplayName')
+  body('updatedChosenPublicName')
     .notEmpty()
     .isString()
-    .withMessage('updatedDisplayName cannot be empty and should be a valid string'),
+    .withMessage('updatedChosenPublicName cannot be empty and should be a valid string'),
 ]

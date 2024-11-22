@@ -92,11 +92,11 @@ export async function verifyAuthTokenAndReturnAccount(
       particleUUID: userToken.particleUUID,
       wallets: userToken.wallets,
       primaryWallet: userToken?.primaryWallet,
-      displayName: userToken?.displayName,
+      chosenPublicName: userToken?.chosenPublicName,
     }
   } catch (error) {
     console.error(
-      'Error occurred while fetching user token from auth token',
+      'error occurred while fetching user token from auth token',
       error
     )
     return null
@@ -108,5 +108,5 @@ export type DECODED_ACCOUNT = {
   particleUUID: string
   wallets: Wallet
   primaryWallet: string
-  displayName: string
+  chosenPublicName: string
 }
