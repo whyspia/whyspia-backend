@@ -51,7 +51,7 @@ export async function fetchAllSavedPerson(req: Request, res: Response) {
     const orderBy = req.query.orderBy as keyof SavedPersonResponse
     const orderDirection =
       (req.query.orderDirection as string | undefined) ?? 'desc'
-    const search = (req.query.senderPrimaryWallet as string) || null
+    const search = (req.query.search as string) || null
 
     // you gotta be savedBy to fetch SavedPersons
     const savedBy = decodedAccount?.primaryWallet

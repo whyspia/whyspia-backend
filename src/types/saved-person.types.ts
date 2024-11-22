@@ -9,6 +9,7 @@ export interface SavedPersonRequest {
 export interface SavedPersonResponse {
   id: string
   savedBy: string
+  primaryWalletSaved: string
   primaryWalletSavedUser: UserV2TokenPublicResponse | null
   chosenName: string
   createdAt: Date

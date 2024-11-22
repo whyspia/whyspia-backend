@@ -78,6 +78,14 @@ export async function fetchAllSavedPersonFromDB(
     //     ],
     //   })
     // }
+    if (search) {
+      filterOptions.push({
+        $or: [
+          { primaryWalletSaved: { $regex: new RegExp(search, 'iu') } },
+          { chosenName: { $regex: new RegExp(search, 'iu') } },
+        ],
+      })
+    }
 
     // Filter Query
     let filterQuery = {}

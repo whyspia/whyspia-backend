@@ -14,6 +14,7 @@ export function mapSavedPersonResponse(
   return {
     id: savedPersonDoc?._id?.toString() || savedPersonDoc?.id,
     savedBy: savedPersonDoc?.savedBy,
+    primaryWalletSaved: savedPersonDoc?.primaryWalletSaved,
     primaryWalletSavedUser: mapUserV2TokenPublicResponse(primaryWalletSavedUserDoc),
     chosenName: savedPersonDoc?.chosenName,
     createdAt: (savedPersonDoc as any)?.createdAt,
