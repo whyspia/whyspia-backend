@@ -4,6 +4,7 @@ import { mapSavedPersonResponse } from '../util/savedPersonUtil'
 import { SavedPersonDocument, SavedPersonModel } from '../models/saved-person.model'
 import type { SavedPersonQueryOptions, SavedPersonRequest, SavedPersonResponse } from '../types/saved-person.types'
 import { UserV2Model } from '../models/user-v2.model'
+import { getUserTokenWithDisplayName } from './user-v2.service'
 
 export async function createSavedPersonInDB(savedPersonData: Partial<SavedPersonRequest>): Promise<SavedPersonResponse | null> {
   try {
@@ -16,8 +17,9 @@ export async function createSavedPersonInDB(savedPersonData: Partial<SavedPerson
     const createdSavedPerson = await SavedPersonModel.create(savedPersonDoc)
 
     const primaryWalletSavedUserDoc = await UserV2Model.findOne({ primaryWallet: createdSavedPerson?.primaryWalletSaved })
+    const primaryWalletSavedUserWithDisplayName = await getUserTokenWithDisplayName(primaryWalletSavedUserDoc, savedPersonData.savedBy as string)
 
-    return createdSavedPerson ? mapSavedPersonResponse(createdSavedPerson, primaryWalletSavedUserDoc) : null
+    return createdSavedPerson ? mapSavedPersonResponse(createdSavedPerson, primaryWalletSavedUserWithDisplayName) : null
   } catch (error) {
     console.error('error occurred while creating SavedPerson in DB', error)
     throw new Error('failed to create SavedPerson in DB')
@@ -40,8 +42,9 @@ export async function fetchSavedPersonFromDB({
       })
 
     const primaryWalletSavedUserDoc = await UserV2Model.findOne({ primaryWallet: savedPersonDoc?.primaryWalletSaved })
+    const primaryWalletSavedUserWithDisplayName = await getUserTokenWithDisplayName(primaryWalletSavedUserDoc, requestingPrimaryWallet)
 
-    return savedPersonDoc ? mapSavedPersonResponse(savedPersonDoc, primaryWalletSavedUserDoc) : null
+    return savedPersonDoc ? mapSavedPersonResponse(savedPersonDoc, primaryWalletSavedUserWithDisplayName) : null
   } catch (error) {
     console.error('error occurred while fetching SavedPerson from DB', error)
     throw new Error('failed to fetch SavedPerson from DB')
@@ -106,9 +109,19 @@ export async function fetchAllSavedPersonFromDB(
       { $skip: skip },
       { $limit: limit }
     ])
+
+    // if there is a requesting user (for now prob required for all SavedPerson endpoints tbh, but may not be in future), fetch their saved persons
+    const userWithDisplayNameMap = {} as any
+    for (const savedPersonDoc of savedPersonDocs) {
+      const primaryWalletSavedUserDoc = savedPersonDoc.primaryWalletSavedUser[0]
+
+      const primaryWalletSavedUserWithDisplayName = await getUserTokenWithDisplayName(primaryWalletSavedUserDoc, savedBy)
+
+      userWithDisplayNameMap[savedPersonDoc.primaryWalletSaved] = primaryWalletSavedUserWithDisplayName
+    }
   
     return savedPersonDocs.map(doc => {
-      const primaryWalletSavedUser = doc.primaryWalletSavedUser[0] // Get the first user from the array
+      const primaryWalletSavedUser = userWithDisplayNameMap[doc.primaryWalletSaved]
       return mapSavedPersonResponse(doc, primaryWalletSavedUser) as SavedPersonResponse
     })
   } catch (error) {
@@ -137,7 +150,8 @@ export async function updateSavedPersonInDB({
       { new: true }
     )
     const primaryWalletSavedUserDoc = await UserV2Model.findOne({ primaryWallet: updatedSavedPersonDoc?.primaryWalletSaved })
-    return updatedSavedPersonDoc ? mapSavedPersonResponse(updatedSavedPersonDoc, primaryWalletSavedUserDoc) : null
+    const primaryWalletSavedUserWithDisplayName = await getUserTokenWithDisplayName(primaryWalletSavedUserDoc, requestingPrimaryWallet)
+    return updatedSavedPersonDoc ? mapSavedPersonResponse(updatedSavedPersonDoc, primaryWalletSavedUserWithDisplayName) : null
   } catch (error) {
     console.error('error occurred while updating SavedPerson in DB', error)
     throw new Error('failed to update SavedPerson in DB')

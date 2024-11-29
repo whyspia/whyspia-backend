@@ -9,6 +9,8 @@ export type TAURequest = {
 
 export type TAUResponse = {
   id: string
+  senderPrimaryWallet: string
+  receiverPrimaryWallet: string
   senderUser: UserV2TokenPublicResponse | null
   receiverUser: UserV2TokenPublicResponse | null
   additionalMessage: string
@@ -23,4 +25,5 @@ export type TAUQueryOptions = {
   senderPrimaryWallet: string | null
   receiverPrimaryWallet: string | null
   additionalMessage: string | null
+  requestingPrimaryWallet: string
 }

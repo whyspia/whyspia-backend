@@ -8,6 +8,7 @@ import { mapTAUResponse } from '../util/tauUtil'
 import { createEmoteNotifInDB } from './emote-notif.service'
 import { NOTIF_TYPE } from '../models/emote-notif.model'
 import { UserV2Model } from '../models/user-v2.model'
+import { fetchUserV2TokenPublicFromDB, getUserTokenWithDisplayName } from './user-v2.service'
 
 export async function createTAUInDB(tauData: Partial<TAURequest>): Promise<TAUResponse | null> {
   try {
@@ -22,10 +23,20 @@ export async function createTAUInDB(tauData: Partial<TAURequest>): Promise<TAURe
 
     const senderUserDoc = await UserV2Model.findOne({ primaryWallet: createdTAU?.senderPrimaryWallet })
     const receiverUserDoc = await UserV2Model.findOne({ primaryWallet: createdTAU?.receiverPrimaryWallet })
+    // const senderUserWithDisplayName = await getUserTokenWithDisplayName(senderUserDoc, tauData.senderPrimaryWallet as string)
+    // const receiverUserWithDisplayName = await getUserTokenWithDisplayName(receiverUserDoc, tauData.senderPrimaryWallet as string)
 
-    await createEmoteNotifInDB({ notifType: NOTIF_TYPE.TAU_SENT, notifDataID: createdTAU._id.toString(), receiverSymbol: tauData.receiverPrimaryWallet, initialNotifData: mapTAUResponse(createdTAU, senderUserDoc, receiverUserDoc) })
+    // if user not in DB, use fetchUserV2TokenPublicFromDB to get fake user response (bc even tho no user, there was wallet given in interaction)
+    const senderUserWithDisplayName = senderUserDoc
+    ? await getUserTokenWithDisplayName(senderUserDoc, tauData.senderPrimaryWallet as string)
+    : await fetchUserV2TokenPublicFromDB({ primaryWallet: tauDoc?.senderPrimaryWallet, requestingPrimaryWallet: tauData.senderPrimaryWallet as string })
+    const receiverUserWithDisplayName = receiverUserDoc
+      ? await getUserTokenWithDisplayName(receiverUserDoc, tauData.senderPrimaryWallet as string)
+      : await fetchUserV2TokenPublicFromDB({ primaryWallet: tauDoc?.receiverPrimaryWallet, requestingPrimaryWallet: tauData.senderPrimaryWallet as string })
+
+    await createEmoteNotifInDB({ notifType: NOTIF_TYPE.TAU_SENT, notifDataID: createdTAU._id.toString(), receiverSymbol: tauData.receiverPrimaryWallet, initialNotifData: mapTAUResponse(createdTAU, senderUserWithDisplayName, receiverUserWithDisplayName) })
     
-    return createdTAU ? mapTAUResponse(createdTAU, senderUserDoc, receiverUserDoc) : null
+    return createdTAU ? mapTAUResponse(createdTAU, senderUserWithDisplayName, receiverUserWithDisplayName) : null
   } catch (error) {
     console.error('error occurred while creating tau in DB', error)
     throw new InternalServerError('failed to create tau in DB')
@@ -55,7 +66,16 @@ export async function fetchTAUFromDB({
       })
     const senderUserDoc = await UserV2Model.findOne({ primaryWallet: tauDoc?.senderPrimaryWallet })
     const receiverUserDoc = await UserV2Model.findOne({ primaryWallet: tauDoc?.receiverPrimaryWallet })
-    return tauDoc ? mapTAUResponse(tauDoc, senderUserDoc, receiverUserDoc) : null
+    // const senderUserWithDisplayName = await getUserTokenWithDisplayName(senderUserDoc, requestingPrimaryWallet)
+    // const receiverUserWithDisplayName = await getUserTokenWithDisplayName(receiverUserDoc, requestingPrimaryWallet)
+    // if user not in DB, use fetchUserV2TokenPublicFromDB to get fake user response (bc even tho no user, there was wallet given in interaction)
+    const senderUserWithDisplayName = senderUserDoc
+      ? await getUserTokenWithDisplayName(senderUserDoc, requestingPrimaryWallet)
+      : await fetchUserV2TokenPublicFromDB({ primaryWallet: tauDoc?.senderPrimaryWallet as string, requestingPrimaryWallet })
+    const receiverUserWithDisplayName = receiverUserDoc
+      ? await getUserTokenWithDisplayName(receiverUserDoc, requestingPrimaryWallet)
+      : await fetchUserV2TokenPublicFromDB({ primaryWallet: tauDoc?.receiverPrimaryWallet as string, requestingPrimaryWallet })
+    return tauDoc ? mapTAUResponse(tauDoc, senderUserWithDisplayName, receiverUserWithDisplayName) : null
   } catch (error) {
     console.error('error occurred while fetching TAU from DB', error)
     throw new InternalServerError('failed to fetch TAU from DB')
@@ -67,7 +87,7 @@ export async function fetchAllTAUsFromDB(
 ): Promise<TAUResponse[]> {
   try {
 
-    const { skip, limit, orderBy, senderPrimaryWallet, receiverPrimaryWallet, additionalMessage } = options
+    const { skip, limit, orderBy, senderPrimaryWallet, receiverPrimaryWallet, additionalMessage, requestingPrimaryWallet } = options
     const orderDirection = options.orderDirection === 'asc' ? 1 : -1
 
     // Sorting Options
@@ -132,10 +152,28 @@ export async function fetchAllTAUsFromDB(
       { $skip: skip },
       { $limit: limit }
     ])
+
+    // if there is a requesting user, fetch their saved persons
+    const userWithDisplayNameMap = {} as any
+    for (const tauDoc of tauDocs) {
+      const senderUserDoc = tauDoc.senderUser[0]
+      const receiverUserDoc = tauDoc.receiverUser[0]
+
+      // if user not in DB, use fetchUserV2TokenPublicFromDB to get fake user response (bc even tho no user, there was wallet given in interaction)
+      const senderUserWithDisplayName = senderUserDoc
+        ? await getUserTokenWithDisplayName(senderUserDoc, requestingPrimaryWallet)
+        : await fetchUserV2TokenPublicFromDB({ primaryWallet: tauDoc?.senderPrimaryWallet, requestingPrimaryWallet })
+      const receiverUserWithDisplayName = receiverUserDoc
+        ? await getUserTokenWithDisplayName(receiverUserDoc, requestingPrimaryWallet)
+        : await fetchUserV2TokenPublicFromDB({ primaryWallet: tauDoc?.receiverPrimaryWallet, requestingPrimaryWallet })
+
+      userWithDisplayNameMap[tauDoc.senderPrimaryWallet] = senderUserWithDisplayName
+      userWithDisplayNameMap[tauDoc.receiverPrimaryWallet] = receiverUserWithDisplayName
+    }
   
     return tauDocs.map(doc => {
-      const senderUser = doc.senderUser[0] // Get the first user from the array
-      const receiverUser = doc.receiverUser[0] // Get the first user from the array
+      const senderUser = userWithDisplayNameMap[doc.senderPrimaryWallet]
+      const receiverUser = userWithDisplayNameMap[doc.receiverPrimaryWallet]
       return mapTAUResponse(doc, senderUser, receiverUser) as TAUResponse
     })
   } catch (error) {

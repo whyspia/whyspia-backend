@@ -1,12 +1,11 @@
-import { UserV2Document } from '../models/user-v2.model'
 import type { TAUDocument } from '../models/tau.model'
 import type { TAUResponse } from '../types/tau.types'
-import { mapUserV2TokenPublicResponse } from './userV2Util'
+import { UserV2TokenPublicResponseWithDisplayName } from '../types/user-v2.types'
 
 export function mapTAUResponse(
   tauDoc: TAUDocument | null,
-  senderUserDoc: UserV2Document | null,
-  receiverUserDoc: UserV2Document | null,
+  senderUser: UserV2TokenPublicResponseWithDisplayName | null,
+  receiverUser: UserV2TokenPublicResponseWithDisplayName | null,
 ): TAUResponse | null {
   if (!tauDoc) {
     return null
@@ -14,8 +13,10 @@ export function mapTAUResponse(
 
   return {
     id: tauDoc?._id?.toString() || tauDoc?.id,
-    senderUser: mapUserV2TokenPublicResponse(senderUserDoc),
-    receiverUser: mapUserV2TokenPublicResponse(receiverUserDoc),
+    senderPrimaryWallet: tauDoc?.senderPrimaryWallet,
+    receiverPrimaryWallet: tauDoc?.receiverPrimaryWallet,
+    senderUser,
+    receiverUser,
     additionalMessage: tauDoc?.additionalMessage,
     createdAt: (tauDoc as any)?.createdAt,
   }

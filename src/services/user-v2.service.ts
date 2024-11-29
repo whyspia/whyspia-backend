@@ -9,8 +9,9 @@ import { InternalServerError } from './errors'
 import { IUserV2, UserV2Document, UserV2Model, Wallet } from '../models/user-v2.model'
 import crypto from 'crypto'
 import { NonceModel } from '../models/nonce.model'
-import { UserV2LoginCompletion, UserV2TokenPrivateResponse, UserV2TokensQueryOptions } from '../types/user-v2.types'
+import { UserV2LoginCompletion, UserV2TokenPrivateResponse, UserV2TokenPublicResponseWithDisplayName, UserV2TokensQueryOptions } from '../types/user-v2.types'
 import { formatWalletAddress, mapUserV2TokenPrivateResponse, mapUserV2TokenPublicResponse } from '../util/userV2Util'
+import { SavedPersonModel } from '../models/saved-person.model'
 
 const requestPromise = util.promisify(request)
 
@@ -191,8 +192,10 @@ export async function fetchUserV2TokenPrivateFromDB({
 
 export async function fetchUserV2TokenPublicFromDB({
   primaryWallet,
+  requestingPrimaryWallet,
 }: {
   primaryWallet: string | null
+  requestingPrimaryWallet: string | null
 }) {
   let userTokenDoc: UserV2Document | null = null
 
@@ -200,12 +203,56 @@ export async function fetchUserV2TokenPublicFromDB({
     userTokenDoc = await UserV2Model.findOne({ primaryWallet })
   }
 
+  // user with this primaryWallet not in DB
   if (!userTokenDoc) {
+    // user not in DB, so create fake user to fill response. This is bc maybe user hasnt inited into whyspia, BUT their wallet is still what is being interacted with (and maybe this really is their main wallet/identity)
+    // return null
+    userTokenDoc = UserV2Model.build({
+      particleUUID: 'fakeParticleUUID',
+      wallets: [],
+      primaryWallet,
+      chosenPublicName: formatWalletAddress(primaryWallet as string) // in very beginning, default chosenPublicName is formatted primaryWallet
+    } as any)
+  }
+
+  const userWithDisplayName = await getUserTokenWithDisplayName(userTokenDoc, requestingPrimaryWallet)
+
+  // in mapping, remove private data from returned data since dis public data
+  return mapUserV2TokenPublicResponse(userWithDisplayName)
+}
+
+// mainly used once you already have userToken fetched to then get the calculatedDisplayName
+export async function getUserTokenWithDisplayName(
+  userDoc: UserV2Document | null,
+  requestingPrimaryWallet: string | null
+): Promise<UserV2TokenPublicResponseWithDisplayName | null> {
+  if (!userDoc) {
     return null
   }
 
-  // in mapping, remove private data from returned data since dis public data
-  return mapUserV2TokenPublicResponse(userTokenDoc)
+  const { primaryWallet, chosenPublicName } = userDoc
+
+  if (!requestingPrimaryWallet) {
+    return {
+      primaryWallet,
+      chosenPublicName,
+      calculatedDisplayName: chosenPublicName,
+    }
+  }
+
+  // check if there is a SavedPerson record for the target primaryWallet
+  const savedPerson = await SavedPersonModel.findOne({
+    primaryWalletSaved: primaryWallet,
+    savedBy: requestingPrimaryWallet
+  })
+
+  const calculatedDisplayName = savedPerson ? savedPerson.chosenName : chosenPublicName
+
+  return {
+    primaryWallet,
+    chosenPublicName,
+    calculatedDisplayName
+  }
 }
 
 export async function fetchAllUserV2TokensFromDB(

@@ -119,14 +119,17 @@ export async function fetchUserV2TokenPrivate(req: Request, res: Response) {
 
 export async function fetchUserV2TokenPublic(req: Request, res: Response) {
   try {
-    // const twitterUsername = req.query.twitterUsername
-    //   ? (req.query.twitterUsername as string)
-    //   : null
+    const decodedAccount = (req as any).decodedAccount as
+      | UserV2TokenPrivateResponse
+      | null
+      | undefined
     const primaryWallet = req.query.primaryWallet as string
+
+    const requestingPrimaryWallet = decodedAccount?.primaryWallet as string
 
     const userToken = await fetchUserV2TokenPublicFromDB({
       primaryWallet,
-      // twitterUsername,
+      requestingPrimaryWallet,
     })
 
     return handleSuccess(res, { userToken })

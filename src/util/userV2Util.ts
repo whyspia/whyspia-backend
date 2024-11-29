@@ -1,4 +1,4 @@
-import { UserV2TokenPrivateResponse, UserV2TokenPublicResponse } from '../types/user-v2.types'
+import { UserV2TokenPrivateResponse, UserV2TokenPublicResponse, UserV2TokenPublicResponseWithDisplayName } from '../types/user-v2.types'
 import { UserV2Document } from '../models/user-v2.model'
 
 export function mapUserV2TokenPrivateResponse(
@@ -18,15 +18,16 @@ export function mapUserV2TokenPrivateResponse(
 }
 
 export function mapUserV2TokenPublicResponse(
-  userTokenDoc: UserV2Document | null
-): UserV2TokenPublicResponse | null {
-  if (!userTokenDoc) {
+  userToken: UserV2TokenPublicResponseWithDisplayName | null
+): UserV2TokenPublicResponseWithDisplayName | null {
+  if (!userToken) {
     return null
   }
 
   return {
-    primaryWallet: userTokenDoc.primaryWallet,
-    chosenPublicName: userTokenDoc.chosenPublicName,
+    primaryWallet: userToken.primaryWallet,
+    chosenPublicName: userToken.chosenPublicName,
+    calculatedDisplayName: userToken.calculatedDisplayName,
   }
 }
 

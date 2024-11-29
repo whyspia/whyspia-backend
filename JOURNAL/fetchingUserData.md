@@ -1,0 +1,4 @@
+thoughts on fetching usernames with 3 different types: chosenPublicName, primaryWallet (formatted version default for chosenPublicName), and SavedPerson chosenName
+  [[November 23rd, 2024]]
+    - some util that isnt userUtil may be returning multiple users. Need to do this process of figuring out displayName for each user. Preferabble to not make these utils async, SO need to handle fetching of SavedPerson in whatever service file comes before that util that isnt userUtil. Then, userUtil itself will handle only one at a time obv.
+    - hmm maybe i can make new type that is a userDoc with the added calculatedDisplayName field

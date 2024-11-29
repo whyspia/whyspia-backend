@@ -18,6 +18,13 @@ export type UserV2TokenPublicResponse = {
   chosenPublicName: string
 }
 
+export type UserV2TokenPublicResponseWithDisplayName = {
+  primaryWallet: string
+  chosenPublicName: string
+  // this is subjective field - if user that sent request to fetch this data has this person as SavedPerson, then chosenName will be displayed. Otherwise will be publicChosenName
+  calculatedDisplayName: string
+}
+
 export type UserV2TokensQueryOptions = {
   skip: number
   limit: number

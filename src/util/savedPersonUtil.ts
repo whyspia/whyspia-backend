@@ -2,10 +2,11 @@ import { UserV2Document } from '../models/user-v2.model'
 import { mapUserV2TokenPublicResponse } from './userV2Util'
 import { SavedPersonResponse } from '../types/saved-person.types'
 import { SavedPersonDocument } from '../models/saved-person.model'
+import { UserV2TokenPublicResponseWithDisplayName } from 'types/user-v2.types'
 
 export function mapSavedPersonResponse(
   savedPersonDoc: SavedPersonDocument | null,
-  primaryWalletSavedUserDoc: UserV2Document | null,
+  primaryWalletSavedUserDoc: UserV2TokenPublicResponseWithDisplayName | null,
 ): SavedPersonResponse | null {
   if (!savedPersonDoc) {
     return null

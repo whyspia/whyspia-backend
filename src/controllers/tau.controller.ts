@@ -54,8 +54,10 @@ export async function fetchAllTAUs(req: Request, res: Response) {
     const receiverPrimaryWallet = (req.query.receiverPrimaryWallet as string) || null
     const additionalMessage = (req.query.additionalMessage as string) || null
 
+    const requestingPrimaryWallet = decodedAccount?.primaryWallet
+
     // you gotta either be the sender or the receiver to fetch TAUs
-    if (decodedAccount.primaryWallet !== senderPrimaryWallet && decodedAccount.primaryWallet !== receiverPrimaryWallet) {
+    if (requestingPrimaryWallet !== senderPrimaryWallet && requestingPrimaryWallet !== receiverPrimaryWallet) {
       const error = new Error('unauthorized access to fetch all taus')
       console.error('unauthorized access to fetch all taus', error)
       return handleError(res, error, 'unauthorized')
@@ -69,6 +71,7 @@ export async function fetchAllTAUs(req: Request, res: Response) {
       senderPrimaryWallet,
       receiverPrimaryWallet,
       additionalMessage,
+      requestingPrimaryWallet,
     }
 
     const taus = await fetchAllTAUsFromDB(options)
