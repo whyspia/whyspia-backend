@@ -39,6 +39,7 @@ userV2TokenRouter.get(
   '/single-public',
   fetchUserTokenPublicValidation,
   validateRequest,
+  optionalAuthenticateAndSetAccount,
   fetchUserV2TokenPublic
 )
 
@@ -46,6 +47,7 @@ userV2TokenRouter.get(
   '',
   fetchAllUserTokensValidation,
   validateRequest,
+  optionalAuthenticateAndSetAccount,
   fetchAllTwitterUserTokens
 )
 

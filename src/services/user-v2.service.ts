@@ -237,6 +237,8 @@ export async function getUserTokenWithDisplayName(
       primaryWallet,
       chosenPublicName,
       calculatedDisplayName: chosenPublicName,
+      requestingPrimaryWallet: null,
+      isRequestedUserSavedByRequestingUser: false,
     }
   }
 
@@ -251,7 +253,9 @@ export async function getUserTokenWithDisplayName(
   return {
     primaryWallet,
     chosenPublicName,
-    calculatedDisplayName
+    calculatedDisplayName,
+    requestingPrimaryWallet,
+    isRequestedUserSavedByRequestingUser: Boolean(savedPerson),
   }
 }
 

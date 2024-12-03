@@ -28,6 +28,8 @@ export function mapUserV2TokenPublicResponse(
     primaryWallet: userToken.primaryWallet,
     chosenPublicName: userToken.chosenPublicName,
     calculatedDisplayName: userToken.calculatedDisplayName,
+    requestingPrimaryWallet: userToken.requestingPrimaryWallet,
+    isRequestedUserSavedByRequestingUser: userToken.isRequestedUserSavedByRequestingUser,
   }
 }
 

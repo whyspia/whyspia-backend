@@ -1,6 +1,6 @@
 import type { FilterQuery } from 'mongoose'
 
-import { mapSavedPersonResponse } from '../util/savedPersonUtil'
+import { convertSavedPersonToUserProfile, mapSavedPersonResponse } from '../util/savedPersonUtil'
 import { SavedPersonDocument, SavedPersonModel } from '../models/saved-person.model'
 import type { SavedPersonQueryOptions, SavedPersonRequest, SavedPersonResponse } from '../types/saved-person.types'
 import { UserV2Model } from '../models/user-v2.model'
@@ -115,7 +115,14 @@ export async function fetchAllSavedPersonFromDB(
     for (const savedPersonDoc of savedPersonDocs) {
       const primaryWalletSavedUserDoc = savedPersonDoc.primaryWalletSavedUser[0]
 
-      const primaryWalletSavedUserWithDisplayName = await getUserTokenWithDisplayName(primaryWalletSavedUserDoc, savedBy)
+      // if primaryWalletSavedUserDoc is null, then there is no UserV2 for this user despite them being a SavedUser
+      let finalUserDoc = primaryWalletSavedUserDoc
+      if (!primaryWalletSavedUserDoc) {
+        // basically create mock user in place of no user
+        finalUserDoc = convertSavedPersonToUserProfile(savedPersonDoc)
+      }
+
+      const primaryWalletSavedUserWithDisplayName = await getUserTokenWithDisplayName(finalUserDoc, savedBy)
 
       userWithDisplayNameMap[savedPersonDoc.primaryWalletSaved] = primaryWalletSavedUserWithDisplayName
     }

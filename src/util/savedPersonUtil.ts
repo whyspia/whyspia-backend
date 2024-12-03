@@ -1,4 +1,3 @@
-import { UserV2Document } from '../models/user-v2.model'
 import { mapUserV2TokenPublicResponse } from './userV2Util'
 import { SavedPersonResponse } from '../types/saved-person.types'
 import { SavedPersonDocument } from '../models/saved-person.model'
@@ -19,5 +18,13 @@ export function mapSavedPersonResponse(
     primaryWalletSavedUser: mapUserV2TokenPublicResponse(primaryWalletSavedUserDoc),
     chosenName: savedPersonDoc?.chosenName,
     createdAt: (savedPersonDoc as any)?.createdAt,
+  }
+}
+
+export const convertSavedPersonToUserProfile = (savedPerson: SavedPersonResponse): Partial<UserV2TokenPublicResponseWithDisplayName> => {
+  return {
+    primaryWallet: savedPerson.primaryWalletSaved,
+    chosenPublicName: savedPerson.chosenName,
+    // calculatedDisplayName: savedPerson.calculatedDisplayName
   }
 }
