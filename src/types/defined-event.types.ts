@@ -1,3 +1,5 @@
+import { UserV2TokenPublicResponse } from "./user-v2.types"
+
 export type DefinedEventRequest = {
   id: string
   eventCreator: string
@@ -9,6 +11,7 @@ export type DefinedEventRequest = {
 export type DefinedEventResponse = {
   id: string
   eventCreator: string
+  eventCreatorUser: UserV2TokenPublicResponse | null
   eventName: string
   eventDescription: string | null
   createdAt: Date
@@ -23,4 +26,5 @@ export type DefinedEventQueryOptions = {
   eventCreator: string | null
   eventName: string | null
   search: string | null
+  requestingPrimaryWallet: string
 }

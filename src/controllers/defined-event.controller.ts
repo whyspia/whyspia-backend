@@ -16,7 +16,7 @@ export async function createDefinedEvent(req: Request, res: Response) {
     const decodedAccount = (req as any).decodedAccount as DECODED_ACCOUNT
     const reqBody = req.body
     const requestData = {
-      eventCreator: decodedAccount.twitterUsername,
+      eventCreator: decodedAccount?.primaryWallet,
       eventName: reqBody.eventName,
       eventDescription: reqBody?.eventDescription || null,
     }
@@ -24,7 +24,7 @@ export async function createDefinedEvent(req: Request, res: Response) {
 
     // send ze emote out
     // const emoteRequestData = {
-    //   senderTwitterUsername: decodedAccount.twitterUsername,
+    //   senderTwitterUsername: decodedAccount?.primaryWallet,
     //   receiverSymbols: [EMOTE_CONTEXTS.PINGPPL],
     //   sentSymbols: ["PINGPLAN: " + reqBody.eventName],
     // }
@@ -32,31 +32,33 @@ export async function createDefinedEvent(req: Request, res: Response) {
 
     return handleSuccess(res, { definedEvent })
   } catch (error) {
-    console.error('Error occurred while creating DefinedEvent', error)
-    return handleError(res, error, 'Unable to create DefinedEvent')
+    console.error('error occurred while creating DefinedEvent', error)
+    return handleError(res, error, 'unable to create DefinedEvent')
   }
 }
 
 export async function fetchDefinedEvent(req: Request, res: Response) {
   try {
-    // const decodedAccount = (req as any).decodedAccount as DECODED_ACCOUNT
+    const decodedAccount = (req as any).decodedAccount as DECODED_ACCOUNT
     const eventCreator = req.query.eventCreator as string ?? null
     const definedEventId = req.query.definedEventId as string ?? null
     const eventName = req.query.eventName as string ?? null
     const definedEvent = await fetchDefinedEventFromDB({
+      requestingPrimaryWallet: decodedAccount?.primaryWallet,
       definedEventId,
       eventName,
       eventCreator,
     })
     return handleSuccess(res, { definedEvent })
   } catch (error) {
-    console.error('Error occurred while fetching DefinedEvent', error)
-    return handleError(res, error, 'Unable to fetch DefinedEvent')
+    console.error('error occurred while fetching DefinedEvent', error)
+    return handleError(res, error, 'unable to fetch DefinedEvent')
   }
 }
 
 export async function fetchAllDefinedEvents(req: Request, res: Response) {
   try {
+    const decodedAccount = (req as any).decodedAccount as DECODED_ACCOUNT
     const skip = Number.parseInt(req.query.skip as string) || 0
     const limit = Number.parseInt(req.query.limit as string) || 10
     const orderBy = req.query.orderBy as keyof DefinedEventResponse
@@ -67,6 +69,8 @@ export async function fetchAllDefinedEvents(req: Request, res: Response) {
     const eventName = (req.query.eventName as string) || null
     const search = (req.query.search as string) || null
 
+    const requestingPrimaryWallet = decodedAccount?.primaryWallet
+
     const options: DefinedEventQueryOptions = {
       skip,
       limit,
@@ -75,13 +79,14 @@ export async function fetchAllDefinedEvents(req: Request, res: Response) {
       search,
       eventCreator,
       eventName,
+      requestingPrimaryWallet,
     }
 
     const definedEvents = await fetchAllDefinedEventsFromDB(options)
     return handleSuccess(res, { definedEvents })
   } catch (error) {
-    console.error('Error occurred while fetching all DefinedEvents', error)
-    return handleError(res, error, 'Unable to fetch all DefinedEvents')
+    console.error('error occurred while fetching all DefinedEvents', error)
+    return handleError(res, error, 'unable to fetch all DefinedEvents')
   }
 }
 
@@ -92,15 +97,15 @@ export async function updateDefinedEvent(req: Request, res: Response) {
     const updatedEventName = req.body?.updatedEventName as string || null
     const updatedEventDescription = req.body?.updatedEventDescription as string || null
     const updatedDefinedEvent = await updateDefinedEventInDB({
-      eventCreator: decodedAccount.twitterUsername,
+      eventCreator: decodedAccount?.primaryWallet,
       definedEventId,
       updatedEventName,
       updatedEventDescription,
     })
     return handleSuccess(res, { updatedDefinedEvent })
   } catch (error) {
-    console.error('Error occurred while updating DefinedEvent', error)
-    return handleError(res, error, 'Unable to update DefinedEvent')
+    console.error('error occurred while updating DefinedEvent', error)
+    return handleError(res, error, 'unable to update DefinedEvent')
   }
 }
 
@@ -108,10 +113,10 @@ export async function deleteDefinedEvent(req: Request, res: Response) {
   try {
     const decodedAccount = (req as any).decodedAccount as DECODED_ACCOUNT
     const definedEventId = req.body.definedEventId as string
-    await deleteDefinedEventInDB(definedEventId, decodedAccount.twitterUsername)
+    await deleteDefinedEventInDB(definedEventId, decodedAccount?.primaryWallet)
     return handleSuccess(res, { message: `DefinedEvent with ID ${definedEventId} has been deleted` })
   } catch (error) {
-    console.error('Error occurred while deleting DefinedEvent', error)
-    return handleError(res, error, 'Unable to delete DefinedEvent')
+    console.error('error occurred while deleting DefinedEvent', error)
+    return handleError(res, error, 'unable to delete DefinedEvent')
   }
 }

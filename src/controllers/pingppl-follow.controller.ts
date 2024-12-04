@@ -17,19 +17,20 @@ export async function createPingpplFollow(req: Request, res: Response) {
     const requestData = {
       eventNameFollowed: reqBody.eventNameFollowed,
       eventSender: reqBody.eventSender,
-      followSender: decodedAccount.twitterUsername,
+      followSender: decodedAccount?.primaryWallet,
     }
     const pingpplFollow = await createPingpplFollowInDB(requestData);
   
     return handleSuccess(res, { pingpplFollow })
   } catch (error) {
-    console.error('Error occurred while creating PingpplFollow', error)
-    return handleError(res, error, 'Unable to create PingpplFollow')
+    console.error('error occurred while creating PingpplFollow', error)
+    return handleError(res, error, 'unable to create PingpplFollow')
   }
 }
 
 export async function fetchAllPingpplFollows(req: Request, res: Response) {
   try {
+    const decodedAccount = (req as any).decodedAccount as DECODED_ACCOUNT
     const skip = Number.parseInt(req.query.skip as string) || 0
     const limit = Number.parseInt(req.query.limit as string) || 10
     const orderBy = req.query.orderBy as keyof PingpplFollowResponse
@@ -40,6 +41,8 @@ export async function fetchAllPingpplFollows(req: Request, res: Response) {
     const eventSender = (req.query.eventSender as string) || null
     const followSender = (req.query.followSender as string) || null
 
+    const requestingPrimaryWallet = decodedAccount?.primaryWallet
+
     const options: PingpplFollowQueryOptions = {
       skip,
       limit,
@@ -49,13 +52,14 @@ export async function fetchAllPingpplFollows(req: Request, res: Response) {
       eventNameFollowed,
       eventSender,
       followSender,
+      requestingPrimaryWallet,
     }
 
     const pingpplFollows = await fetchAllPingpplFollowsFromDB(options)
     return handleSuccess(res, { pingpplFollows })
   } catch (error) {
-    console.error('Error occurred while fetching all PingpplFollows', error)
-    return handleError(res, error, 'Unable to fetch all PingpplFollows')
+    console.error('error occurred while fetching all PingpplFollows', error)
+    return handleError(res, error, 'unable to fetch all PingpplFollows')
   }
 }
 
@@ -63,10 +67,10 @@ export async function deletePingpplFollow(req: Request, res: Response) {
   try {
     const decodedAccount = (req as any).decodedAccount as DECODED_ACCOUNT
     const pingpplFollowId = req.body.pingpplFollowId as string
-    await deletePingpplFollowInDB(pingpplFollowId, decodedAccount.twitterUsername)
+    await deletePingpplFollowInDB(pingpplFollowId, decodedAccount?.primaryWallet)
     return handleSuccess(res, { message: `PingpplFollow with ID ${pingpplFollowId} has been deleted` })
   } catch (error) {
-    console.error('Error occurred while deleting PingpplFollow', error)
-    return handleError(res, error, 'Unable to delete PingpplFollow')
+    console.error('error occurred while deleting PingpplFollow', error)
+    return handleError(res, error, 'unable to delete PingpplFollow')
   }
 }

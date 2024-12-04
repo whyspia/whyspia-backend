@@ -15,7 +15,7 @@ export async function createSentEvent(req: Request, res: Response) {
     const decodedAccount = (req as any).decodedAccount as DECODED_ACCOUNT
     const reqBody = req.body
     const requestData = {
-      eventSender: decodedAccount.twitterUsername,
+      eventSender: decodedAccount?.primaryWallet,
       eventName: reqBody.eventName,
       definedEventID: reqBody?.definedEventID,
     }
@@ -23,7 +23,7 @@ export async function createSentEvent(req: Request, res: Response) {
 
     // send ze emote out
     // const emoteRequestData = {
-    //   senderTwitterUsername: decodedAccount.twitterUsername,
+    //   senderTwitterUsername: decodedAccount?.primaryWallet,
     //   receiverSymbols: [EMOTE_CONTEXTS.PINGPPL],
     //   sentSymbols: ["PING: " + reqBody.eventName],
     // }
@@ -42,14 +42,14 @@ export async function createDefinedEventAndThenSentEvent(req: Request, res: Resp
     const reqBody = req.body
 
     const definedEventRequestData = {
-      eventCreator: decodedAccount.twitterUsername,
+      eventCreator: decodedAccount?.primaryWallet,
       eventName: reqBody.eventName,
       eventDescription: reqBody?.eventDescription || null,
     }
     const definedEvent = await createDefinedEventInDB(definedEventRequestData)
 
     const sentEventRequestData = {
-      eventSender: decodedAccount.twitterUsername,
+      eventSender: decodedAccount?.primaryWallet,
       eventName: reqBody.eventName,
       definedEventID: definedEvent?.id,
     }
@@ -57,7 +57,7 @@ export async function createDefinedEventAndThenSentEvent(req: Request, res: Resp
 
     // send ze emote out
     // const emoteRequestData = {
-    //   senderTwitterUsername: decodedAccount.twitterUsername,
+    //   senderTwitterUsername: decodedAccount?.primaryWallet,
     //   receiverSymbols: [EMOTE_CONTEXTS.PINGPPL],
     //   sentSymbols: ["PINGPLAN&PING: " + reqBody.eventName],
     // }
@@ -72,11 +72,12 @@ export async function createDefinedEventAndThenSentEvent(req: Request, res: Resp
 
 export async function fetchSentEvent(req: Request, res: Response) {
   try {
-    // const decodedAccount = (req as any).decodedAccount as DECODED_ACCOUNT
+    const decodedAccount = (req as any).decodedAccount as DECODED_ACCOUNT
     const eventSender = req.query.eventSender as string
     const sentEventId = req.query.sentEventId as string
     const eventName = req.query.eventName as string
     const sentEvent = await fetchSentEventFromDB({
+      requestingPrimaryWallet: decodedAccount.primaryWallet,
       sentEventId,
       eventName,
       eventSender,
@@ -90,6 +91,7 @@ export async function fetchSentEvent(req: Request, res: Response) {
 
 export async function fetchAllSentEvents(req: Request, res: Response) {
   try {
+    const decodedAccount = (req as any).decodedAccount as DECODED_ACCOUNT
     const skip = Number.parseInt(req.query.skip as string) || 0
     const limit = Number.parseInt(req.query.limit as string) || 10
     const orderBy = req.query.orderBy as keyof SentEventResponse
@@ -99,6 +101,8 @@ export async function fetchAllSentEvents(req: Request, res: Response) {
     const eventSender = (req.query.eventSender as string) || null
     const eventName = (req.query.eventName as string) || null
 
+    const requestingPrimaryWallet = decodedAccount?.primaryWallet
+
     const options: SentEventQueryOptions = {
       skip,
       limit,
@@ -107,6 +111,7 @@ export async function fetchAllSentEvents(req: Request, res: Response) {
       // search,
       eventSender,
       eventName,
+      requestingPrimaryWallet,
     }
 
     const sentEvents = await fetchAllSentEventsFromDB(options)
@@ -125,7 +130,7 @@ export async function fetchAllSentEvents(req: Request, res: Response) {
 //     const updatedEventName = req.body?.updatedEventName as string || null
 //     const updatedEventDescription = req.body?.updatedEventDescription as string || null
 //     const updatedSentEvent = await updateSentEventInDB({
-//       eventSender: decodedAccount.twitterUsername,
+//       eventSender: decodedAccount?.primaryWallet,
 //       sentEventId,
 //       updatedEventName,
 //       updatedEventDescription,
@@ -142,7 +147,7 @@ export async function fetchAllSentEvents(req: Request, res: Response) {
 //   try {
 //     const decodedAccount = (req as any).decodedAccount as DECODED_ACCOUNT
 //     const sentEventId = req.body.sentEventId as string
-//     await deleteSentEventInDB(sentEventId, decodedAccount.twitterUsername)
+//     await deleteSentEventInDB(sentEventId, decodedAccount?.primaryWallet)
 //     return handleSuccess(res, { message: `SentEvent with ID ${sentEventId} has been deleted` })
 //   } catch (error) {
 //     console.error('Error occurred while deleting SentEvent', error)

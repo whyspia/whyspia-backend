@@ -153,7 +153,8 @@ export async function fetchAllTAUsFromDB(
       { $limit: limit }
     ])
 
-    // if there is a requesting user, fetch their saved persons
+    // for each senderPrimaryWallet AND receiverPrimaryWallet, return their userToken. if there is a requestingUser, fetch those 2 userTokens with names relative to requestingUser
+    // TODO: may be issue here where iterating way too many times if just getting list where all records have same senderUser OR all have same receiverUser or maybe even both
     const userWithDisplayNameMap = {} as any
     for (const tauDoc of tauDocs) {
       const senderUserDoc = tauDoc.senderUser[0]

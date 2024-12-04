@@ -115,7 +115,7 @@ export async function fetchAllSavedPersonFromDB(
     for (const savedPersonDoc of savedPersonDocs) {
       const primaryWalletSavedUserDoc = savedPersonDoc.primaryWalletSavedUser[0]
 
-      // if primaryWalletSavedUserDoc is null, then there is no UserV2 for this user despite them being a SavedUser
+      // if primaryWalletSavedUserDoc is null, then there is no UserV2 for this user despite them being a primaryWalletSaved
       let finalUserDoc = primaryWalletSavedUserDoc
       if (!primaryWalletSavedUserDoc) {
         // basically create mock user in place of no user

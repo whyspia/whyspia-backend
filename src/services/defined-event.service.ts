@@ -5,6 +5,8 @@ import type { DefinedEventDocument } from '../models/defined-event.model'
 import type { DefinedEventQueryOptions, DefinedEventRequest, DefinedEventResponse } from '../types/defined-event.types'
 import { InternalServerError } from './errors'
 import { mapDefinedEventResponse } from '../util/definedEventUtil'
+import { UserV2Model } from '../models/user-v2.model'
+import { fetchUserV2TokenPublicFromDB, getUserTokenWithDisplayName } from './user-v2.service'
 
 export async function createDefinedEventInDB(definedEventData: Partial<DefinedEventRequest>): Promise<DefinedEventResponse | null> {
   try {
@@ -15,19 +17,25 @@ export async function createDefinedEventInDB(definedEventData: Partial<DefinedEv
     }
     const definedEventDoc = DefinedEventModel.build(definedEventBuildData)
     const createdDefinedEvent = await DefinedEventModel.create(definedEventDoc)
-    return mapDefinedEventResponse(createdDefinedEvent)
+
+    const eventCreatorUserDoc = await UserV2Model.findOne({ primaryWallet: createdDefinedEvent?.eventCreator })
+    const eventCreatorUserWithDisplayName = await getUserTokenWithDisplayName(eventCreatorUserDoc, definedEventData.eventCreator as string)
+
+    return mapDefinedEventResponse(createdDefinedEvent, eventCreatorUserWithDisplayName)
   } catch (error) {
-    console.error('Error occurred while creating DefinedEvent in DB', error)
-    throw new InternalServerError('Failed to create DefinedEvent in DB')
+    console.error('error occurred while creating DefinedEvent in DB', error)
+    throw new InternalServerError('failed to create DefinedEvent in DB')
   }
 }
 
 // This method fetches one single defined-event from one single user
 export async function fetchDefinedEventFromDB({
+  requestingPrimaryWallet,
   eventCreator,
   definedEventId,
   eventName,
 }: {
+  requestingPrimaryWallet: string
   eventCreator: string
   definedEventId: string
   eventName: string
@@ -44,10 +52,14 @@ export async function fetchDefinedEventFromDB({
         }
       ],
     })
-    return definedEventDoc ? mapDefinedEventResponse(definedEventDoc as any) : null
+
+    const eventCreatorUserDoc = await UserV2Model.findOne({ primaryWallet: definedEventDoc?.eventCreator })
+    const eventCreatorUserWithDisplayName = await getUserTokenWithDisplayName(eventCreatorUserDoc, requestingPrimaryWallet)
+
+    return definedEventDoc ? mapDefinedEventResponse(definedEventDoc as any, eventCreatorUserWithDisplayName) : null
   } catch (error) {
-    console.error('Error occurred while fetching DefinedEvent from DB', error)
-    throw new InternalServerError('Failed to fetch DefinedEvent from DB')
+    console.error('error occurred while fetching DefinedEvent from DB', error)
+    throw new InternalServerError('failed to fetch DefinedEvent from DB')
   }
 }
 
@@ -56,7 +68,7 @@ export async function fetchAllDefinedEventsFromDB(
 ): Promise<DefinedEventResponse[]> {
   try {
 
-    const { skip, limit, orderBy, eventCreator, eventName, search } = options
+    const { skip, limit, orderBy, eventCreator, eventName, search, requestingPrimaryWallet  } = options
     const orderDirection = options.orderDirection === 'asc' ? 1 : -1
 
     // Sorting Options
@@ -96,16 +108,46 @@ export async function fetchAllDefinedEventsFromDB(
       filterQuery = { $and: filterOptions }
     }
 
-    const definedEventDocs: DefinedEventDocument[] = await DefinedEventModel
-      .find(filterQuery)
-      .sort(sortOptions)
-      .skip(skip)
-      .limit(limit)
+    const definedEventDocs = await DefinedEventModel.aggregate([
+      { $match: filterQuery },
+      { $lookup: {
+          from: 'userv2', // The name of the UserV2 collection
+          localField: 'eventCreator', // Field from DefinedEvent
+          foreignField: 'primaryWallet', // Field from UserV2 to match against
+          as: 'eventCreatorUser' // Output array field
+        }
+      },
+      { $sort: sortOptions },
+      { $skip: skip },
+      { $limit: limit }
+    ])
 
-    return definedEventDocs.map((doc) => mapDefinedEventResponse(doc) as DefinedEventResponse)
+    // for each eventCreator, return their userToken. if there is a requestingUser, fetch eventCreator userToken with names relative to requestingUser
+    const userWithDisplayNameMap = {} as any
+    for (const definedEventDoc of definedEventDocs) {
+      // check if the userWithDisplayNameMap already has this eventCreator
+      if (userWithDisplayNameMap[definedEventDoc.eventCreator]) {
+        continue // skip to the next iteration if it exists
+      }
+
+      const eventCreatorDoc = definedEventDoc.eventCreatorUser[0]
+
+      // if user not in DB, use fetchUserV2TokenPublicFromDB to get fake user response (bc even tho no user, there was wallet given in interaction)
+      const eventCreatorWithDisplayName = eventCreatorDoc
+        ? await getUserTokenWithDisplayName(eventCreatorDoc, requestingPrimaryWallet)
+        : await fetchUserV2TokenPublicFromDB({ primaryWallet: eventCreatorDoc?.eventCreator, requestingPrimaryWallet })
+
+      userWithDisplayNameMap[definedEventDoc.eventCreator] = eventCreatorWithDisplayName
+    }
+
+    // return definedEventDocs.map((doc) => mapDefinedEventResponse(doc) as DefinedEventResponse)
+    return definedEventDocs.map(doc => {
+      const eventCreatorUser = userWithDisplayNameMap[doc.eventCreator]
+      return mapDefinedEventResponse(doc, eventCreatorUser) as DefinedEventResponse
+    })
   } catch (error) {
-    console.error('Error occurred while fetching all DefinedEvents from DB', error)
-    throw new InternalServerError('Failed to fetch all DefinedEvents from DB')
+    console.error('error occurred while fetching all DefinedEvents from DB', error)
+    throw new InternalServerError('failed to fetch all DefinedEvents from DB')
   }
 }
 
@@ -143,11 +185,13 @@ export async function updateDefinedEventInDB(
       { new: true }
     )
 
-    return updatedDefinedEventDoc ? mapDefinedEventResponse(updatedDefinedEventDoc as any) : null
+    const eventCreatorUserDoc = await UserV2Model.findOne({ primaryWallet: updatedDefinedEventDoc?.eventCreator })
+    const eventCreatorUserWithDisplayName = await getUserTokenWithDisplayName(eventCreatorUserDoc, eventCreator)
+    return updatedDefinedEventDoc ? mapDefinedEventResponse(updatedDefinedEventDoc as any, eventCreatorUserWithDisplayName) : null
     
   } catch (error) {
-    console.error('Error occurred while updating DefinedEvent in DB', error)
-    throw new InternalServerError('Failed to update DefinedEvent in DB')
+    console.error('error occurred while updating DefinedEvent in DB', error)
+    throw new InternalServerError('failed to update DefinedEvent in DB')
   }
 }
 
@@ -158,7 +202,7 @@ export async function deleteDefinedEventInDB(definedEventId: string, eventCreato
       eventCreator: eventCreator
     })
   } catch (error) {
-    console.error('Error occurred while deleting DefinedEvent from DB', error)
-    throw new InternalServerError('Failed to delete DefinedEvent from DB')
+    console.error('error occurred while deleting DefinedEvent from DB', error)
+    throw new InternalServerError('failed to delete DefinedEvent from DB')
   }
 }

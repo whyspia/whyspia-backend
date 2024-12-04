@@ -3,6 +3,7 @@ import { NOTIF_TYPE } from '../models/emote-notif.model'
 import { PingpplFollowResponse } from "./pingppl-follow.types"
 import { SentEventResponse } from "./sent-event.types"
 import { TAUResponse } from "./tau.types"
+import { UserV2TokenPublicResponse } from "./user-v2.types"
 
 export type EmoteNotifRequest = {
   id: string
@@ -20,6 +21,7 @@ export type EmoteNotifSingleResponse = {
   notifData: EmoteResponse | PingpplFollowResponse | SentEventResponse | TAUResponse | null
   notifType: NOTIF_TYPE
   receiverSymbol: string
+  receiverSymbolUser: UserV2TokenPublicResponse | null
   hasReadCasually: boolean
   hasReadDirectly: boolean
   context?: string

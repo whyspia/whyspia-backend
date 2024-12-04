@@ -44,6 +44,7 @@ pingpplContextRouter.get(
   '/definedEvent',
   fetchAllDefinedEventsValidation,
   validateRequest,
+  optionalAuthenticateAndSetAccount,
   fetchAllDefinedEvents
 )
 
@@ -85,6 +86,7 @@ pingpplContextRouter.get(
   '/sentEvent',
   fetchAllSentEventsValidation,
   validateRequest,
+  optionalAuthenticateAndSetAccount,
   fetchAllSentEvents
 )
 
@@ -102,6 +104,7 @@ pingpplContextRouter.get(
   '/pingpplFollow',
   fetchAllPingpplFollowsValidation,
   validateRequest,
+  optionalAuthenticateAndSetAccount,
   fetchAllPingpplFollows
 )
 

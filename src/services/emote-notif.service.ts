@@ -10,6 +10,7 @@ import { DECODED_ACCOUNT } from '../util/jwtTokenUtil'
 import { getContextOfEmote, getContextOfNotif } from './context.service'
 import { mapEmoteResponse } from '../util/emoteUtil'
 import { NOTIF_TYPE } from '../models/emote-notif.model'
+import { fetchUserV2TokenPublicFromDB, getUserTokenWithDisplayName } from './user-v2.service'
 
 export async function createEmoteNotifInDB(emoteNotifData: Partial<EmoteNotifRequest>): Promise<EmoteNotifSingleResponse | null> {
   try {
@@ -23,10 +24,10 @@ export async function createEmoteNotifInDB(emoteNotifData: Partial<EmoteNotifReq
     }
     const emoteDoc = EmoteNotifModel.build(emoteNotifBuildData)
     const createdEmoteNotif = await EmoteNotifModel.create(emoteDoc)
-    return mapEmoteNotifResponse(createdEmoteNotif)
+    return mapEmoteNotifResponse(createdEmoteNotif, null)
   } catch (error) {
-    console.error('Error occurred while creating emote notif in DB', error)
-    throw new InternalServerError('Failed to create emote notif in DB')
+    console.error('error occurred while creating emote notif in DB', error)
+    throw new InternalServerError('failed to create emote notif in DB')
   }
 
 }
@@ -66,7 +67,14 @@ export async function fetchAllEmoteNotifsFromDB(
       { $match: filterQuery },
       {
         $match: {
-          "receiverSymbol": decodedAccount.twitterUsername  // this makes sure that YOU only get YOUR notifications
+          "receiverSymbol": decodedAccount?.primaryWallet  // this makes sure that YOU only get YOUR notifications
+        }
+      },
+      { $lookup: {
+          from: 'userv2', // The name of the UserV2 collection
+          localField: 'receiverSymbol', // Field from EmoteNotif
+          foreignField: 'primaryWallet', // Field from UserV2 to match against
+          as: 'receiverSymbolUser' // Output array field
         }
       },
       {
@@ -97,14 +105,36 @@ export async function fetchAllEmoteNotifsFromDB(
       return { ...emoteNotif, notifData: { ...notifData, context }, context }
     }))
 
-    const emoteNotifs = emoteNotifsWithContext.map((doc: EmoteNotifDocument) => mapEmoteNotifResponse(doc) as EmoteNotifSingleResponse)
+    // for each receiverSymbol, return their userToken. if there is a requestingUser, fetch receiverSymbol userToken with names relative to requestingUser
+    const userWithDisplayNameMap = {} as any
+    for (const emoteNotifWithContext of emoteNotifsWithContext) {
+      // check if the userWithDisplayNameMap already has this receiverSymbol
+      if (userWithDisplayNameMap[emoteNotifWithContext.receiverSymbol]) {
+        continue // skip to the next iteration if it exists
+      }
+
+      const receiverSymbolDoc = emoteNotifWithContext.receiverSymbolUser[0]
+
+      // if user not in DB, use fetchUserV2TokenPublicFromDB to get fake user response (bc even tho no user, there was wallet given in interaction)
+      const receiverSymbolWithDisplayName = receiverSymbolDoc
+        ? await getUserTokenWithDisplayName(receiverSymbolDoc, decodedAccount?.primaryWallet)
+        : await fetchUserV2TokenPublicFromDB({ primaryWallet: receiverSymbolDoc?.receiverSymbol, requestingPrimaryWallet: decodedAccount?.primaryWallet })
+
+      userWithDisplayNameMap[emoteNotifWithContext.receiverSymbol] = receiverSymbolWithDisplayName
+    }
+
+    // const emoteNotifs = emoteNotifsWithContext.map((doc: EmoteNotifDocument) => mapEmoteNotifResponse(doc) as EmoteNotifSingleResponse)
+    const emoteNotifs = emoteNotifsWithContext.map(doc => {
+      const receiverSymbolUser = userWithDisplayNameMap[doc.receiverSymbol]
+      return mapEmoteNotifResponse(doc, receiverSymbolUser) as EmoteNotifSingleResponse
+    })
     const hasReadCasuallyFalseCount = emoteNotifDocs.hasReadCasuallyFalseCount.length > 0 ? emoteNotifDocs.hasReadCasuallyFalseCount[0].count : 0;
     const hasReadDirectlyFalseCount = emoteNotifDocs.hasReadDirectlyFalseCount.length > 0 ? emoteNotifDocs.hasReadDirectlyFalseCount[0].count : 0;
 
     return { emoteNotifs, hasReadCasuallyFalseCount, hasReadDirectlyFalseCount  }
   } catch (error) {
-    console.error('Error occurred while fetching all emote notifs from DB', error)
-    throw new InternalServerError('Failed to fetch all emote notifs from DB')
+    console.error('error occurred while fetching all emote notifs from DB', error)
+    throw new InternalServerError('failed to fetch all emote notifs from DB')
   }
 }
 
@@ -142,7 +172,7 @@ export async function updateEmoteNotifsInDB(
     const [emoteNotifDocs] = await EmoteNotifModel.aggregate([
       {
         $match: {
-          receiverSymbol: decodedAccount.twitterUsername, // this makes sure that YOU only get YOUR notifications
+          receiverSymbol: decodedAccount?.primaryWallet, // this makes sure that YOU only get YOUR notifications
         }
       },
       {
@@ -166,8 +196,8 @@ export async function updateEmoteNotifsInDB(
     // return updatedEmoteNotifDocs.map((doc: any) => mapEmoteNotifResponse(doc))
     return { hasReadCasuallyFalseCount, hasReadDirectlyFalseCount  }
   } catch (error) {
-    console.error('Error occurred while updating EmoteNotifs in DB', error)
-    throw new InternalServerError('Failed to update EmoteNotifs in DB')
+    console.error('error occurred while updating EmoteNotifs in DB', error)
+    throw new InternalServerError('failed to update EmoteNotifs in DB')
   }
 }
 
@@ -203,7 +233,14 @@ export async function fetchAndUpdateAllEmoteNotifsInDB(
       { $match: filterQuery },
       {
         $match: {
-          "receiverSymbol": decodedAccount.twitterUsername  // this makes sure that YOU only get YOUR notifications
+          "receiverSymbol": decodedAccount?.primaryWallet  // this makes sure that YOU only get YOUR notifications
+        }
+      },
+      { $lookup: {
+          from: 'userv2', // The name of the UserV2 collection
+          localField: 'receiverSymbol', // Field from EmoteNotif
+          foreignField: 'primaryWallet', // Field from UserV2 to match against
+          as: 'receiverSymbolUser' // Output array field
         }
       },
       {
@@ -245,7 +282,7 @@ export async function fetchAndUpdateAllEmoteNotifsInDB(
     const [updatedEmoteNotifDocs] = await EmoteNotifModel.aggregate([
       {
         $match: {
-          receiverSymbol: decodedAccount.twitterUsername,
+          receiverSymbol: decodedAccount?.primaryWallet,
         }
       },
       {
@@ -274,12 +311,34 @@ export async function fetchAndUpdateAllEmoteNotifsInDB(
       return { ...emoteNotif, notifData: { ...notifData }, context }
     }))
 
-    const emoteNotifs = emoteNotifsWithContext?.map((doc: EmoteNotifDocument) => mapEmoteNotifResponse(doc) as EmoteNotifSingleResponse)
+    // for each receiverSymbol, return their userToken. if there is a requestingUser, fetch receiverSymbol userToken with names relative to requestingUser
+    const userWithDisplayNameMap = {} as any
+    for (const emoteNotifWithContext of emoteNotifsWithContext) {
+      // check if the userWithDisplayNameMap already has this receiverSymbol
+      if (userWithDisplayNameMap[emoteNotifWithContext.receiverSymbol]) {
+        continue // skip to the next iteration if it exists
+      }
+
+      const receiverSymbolDoc = emoteNotifWithContext.receiverSymbolUser[0]
+
+      // if user not in DB, use fetchUserV2TokenPublicFromDB to get fake user response (bc even tho no user, there was wallet given in interaction)
+      const receiverSymbolWithDisplayName = receiverSymbolDoc
+        ? await getUserTokenWithDisplayName(receiverSymbolDoc, decodedAccount?.primaryWallet)
+        : await fetchUserV2TokenPublicFromDB({ primaryWallet: receiverSymbolDoc?.receiverSymbol, requestingPrimaryWallet: decodedAccount?.primaryWallet })
+
+      userWithDisplayNameMap[emoteNotifWithContext.receiverSymbol] = receiverSymbolWithDisplayName
+    }
+
+    // const emoteNotifs = emoteNotifsWithContext?.map((doc: EmoteNotifDocument) => mapEmoteNotifResponse(doc) as EmoteNotifSingleResponse)
+    const emoteNotifs = emoteNotifsWithContext.map(doc => {
+      const receiverSymbolUser = userWithDisplayNameMap[doc.receiverSymbol]
+      return mapEmoteNotifResponse(doc, receiverSymbolUser) as EmoteNotifSingleResponse
+    })
 
     return { emoteNotifs, hasReadCasuallyFalseCount, hasReadDirectlyFalseCount }
   } catch (error) {
-    console.error('Error occurred while fetching and updating EmoteNotifs in DB', error)
-    throw new InternalServerError('Failed to fetch and update EmoteNotifs in DB')
+    console.error('error occurred while fetching and updating EmoteNotifs in DB', error)
+    throw new InternalServerError('failed to fetch and update EmoteNotifs in DB')
   }
 }
 
@@ -287,7 +346,7 @@ export async function fetchAndUpdateAllEmoteNotifsInDB(
 //   try {
 //     await EmoteNotifModel.findByIdAndDelete(emoteNotifId)
 //   } catch (error) {
-//     console.error('Error occurred while deleting emote notif from DB', error)
-//     throw new InternalServerError('Failed to delete emote notif from DB')
+//     console.error('error occurred while deleting emote notif from DB', error)
+//     throw new InternalServerError('failed to delete emote notif from DB')
 //   }
 // }

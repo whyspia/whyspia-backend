@@ -9,6 +9,8 @@ import { PingpplFollowQueryOptions } from '../types/pingppl-follow.types'
 import { fetchAllPingpplFollowsFromDB } from './pingppl-follow.service'
 import { createEmoteNotifInDB } from './emote-notif.service'
 import { NOTIF_TYPE } from '../models/emote-notif.model'
+import { UserV2Model } from '../models/user-v2.model'
+import { fetchUserV2TokenPublicFromDB, getUserTokenWithDisplayName } from './user-v2.service'
 
 export async function createSentEventInDB(sentEventData: Partial<SentEventRequest>): Promise<SentEventResponse | null> {
   try {
@@ -20,6 +22,9 @@ export async function createSentEventInDB(sentEventData: Partial<SentEventReques
     const sentEventDoc = SentEventModel.build(sentEventBuildData)
     const createdSentEvent = await SentEventModel.create(sentEventDoc)
 
+    const eventSenderUserDoc = await UserV2Model.findOne({ primaryWallet: createdSentEvent?.eventSender })
+    const eventSenderUserWithDisplayName = await getUserTokenWithDisplayName(eventSenderUserDoc, sentEventData.eventSender as string)
+
     // find all followSenders from follows table and make notif for each
     const options: PingpplFollowQueryOptions = {
       skip: 0,
@@ -29,29 +34,32 @@ export async function createSentEventInDB(sentEventData: Partial<SentEventReques
       eventNameFollowed: sentEventData?.eventName as string,
       eventSender: sentEventData.eventSender as string,
       followSender: null,
+      requestingPrimaryWallet: sentEventData.eventSender as string,
     }
     const pingpplFollows = await fetchAllPingpplFollowsFromDB(options)
 
     if (pingpplFollows && pingpplFollows?.length > 0) {
       for (const follow of pingpplFollows) {
         // TODO: i think we dont need to await these bc that would cause longer load times on frontend for users...i think not awaiting wont cause any issues
-        createEmoteNotifInDB({ notifType: NOTIF_TYPE.PINGPPL_SENTEVENT, notifDataID: createdSentEvent._id.toString(), receiverSymbol: follow.followSender, initialNotifData: mapSentEventResponse(createdSentEvent) })
+        createEmoteNotifInDB({ notifType: NOTIF_TYPE.PINGPPL_SENTEVENT, notifDataID: createdSentEvent._id.toString(), receiverSymbol: follow.followSender, initialNotifData: mapSentEventResponse(createdSentEvent, eventSenderUserWithDisplayName) })
       }
     }
 
-    return mapSentEventResponse(createdSentEvent)
+    return mapSentEventResponse(createdSentEvent, eventSenderUserWithDisplayName)
   } catch (error) {
-    console.error('Error occurred while creating SentEvent in DB', error)
-    throw new InternalServerError('Failed to create SentEvent in DB')
+    console.error('error occurred while creating SentEvent in DB', error)
+    throw new InternalServerError('failed to create SentEvent in DB')
   }
 }
 
 // This method fetches one single sent-event from one single user
 export async function fetchSentEventFromDB({
+  requestingPrimaryWallet,
   eventSender,
   sentEventId,
   eventName,
 }: {
+  requestingPrimaryWallet: string
   eventSender: string
   sentEventId: string
   eventName: string
@@ -64,10 +72,14 @@ export async function fetchSentEventFromDB({
       ],
       eventSender: { $regex: new RegExp("^" + eventSender + "$", 'iu') },
     })
-    return sentEventDoc ? mapSentEventResponse(sentEventDoc as any) : null
+
+    const eventSenderUserDoc = await UserV2Model.findOne({ primaryWallet: sentEventDoc?.eventSender })
+    const eventSenderUserWithDisplayName = await getUserTokenWithDisplayName(eventSenderUserDoc, requestingPrimaryWallet)
+
+    return sentEventDoc ? mapSentEventResponse(sentEventDoc as any, eventSenderUserWithDisplayName) : null
   } catch (error) {
-    console.error('Error occurred while fetching SentEvent from DB', error)
-    throw new InternalServerError('Failed to fetch SentEvent from DB')
+    console.error('error occurred while fetching SentEvent from DB', error)
+    throw new InternalServerError('failed to fetch SentEvent from DB')
   }
 }
 
@@ -76,7 +88,7 @@ export async function fetchAllSentEventsFromDB(
 ): Promise<SentEventResponse[]> {
   try {
 
-    const { skip, limit, orderBy, eventSender, eventName } = options
+    const { skip, limit, orderBy, eventSender, eventName, requestingPrimaryWallet } = options
     const orderDirection = options.orderDirection === 'asc' ? 1 : -1
 
     // Sorting Options
@@ -121,6 +133,13 @@ export async function fetchAllSentEventsFromDB(
           convertedDefinedEventID: { $toObjectId: "$definedEventID" } // Convert definedEventID from string to ObjectId
         }
       },
+      { $lookup: {
+          from: 'userv2', // The name of the UserV2 collection
+          localField: 'eventSender', // Field from SentEvent
+          foreignField: 'primaryWallet', // Field from UserV2 to match against
+          as: 'eventSenderUser' // Output array field
+        }
+      },
       {
         $lookup: {
           from: 'definedevents', // Assuming the collection name is 'definedevents'
@@ -133,13 +152,34 @@ export async function fetchAllSentEventsFromDB(
       { $sort: sortOptions },
       { $skip: skip },
       { $limit: limit }
-    ]) as any
+    ])
     
+    // for each eventSender, return their userToken. if there is a requestingUser, fetch eventSender userToken with names relative to requestingUser
+    const userWithDisplayNameMap = {} as any
+    for (const sentEventDoc of sentEventDocs) {
+      // check if the userWithDisplayNameMap already has this eventSender
+      if (userWithDisplayNameMap[sentEventDoc.eventSender]) {
+        continue // skip to the next iteration if it exists
+      }
 
-    return sentEventDocs?.map((doc: SentEventDocument) => mapSentEventResponse(doc) as SentEventResponse)
+      const eventSenderDoc = sentEventDoc.eventSenderUser[0]
+
+      // if user not in DB, use fetchUserV2TokenPublicFromDB to get fake user response (bc even tho no user, there was wallet given in interaction)
+      const eventSenderWithDisplayName = eventSenderDoc
+        ? await getUserTokenWithDisplayName(eventSenderDoc, requestingPrimaryWallet)
+        : await fetchUserV2TokenPublicFromDB({ primaryWallet: eventSenderDoc?.eventSender, requestingPrimaryWallet })
+
+      userWithDisplayNameMap[sentEventDoc.eventSender] = eventSenderWithDisplayName
+    }
+
+    // return sentEventDocs?.map((doc: SentEventDocument) => mapSentEventResponse(doc) as SentEventResponse)
+    return sentEventDocs.map(doc => {
+      const eventSenderUser = userWithDisplayNameMap[doc.eventSender]
+      return mapSentEventResponse(doc, eventSenderUser) as SentEventResponse
+    })
   } catch (error) {
-    console.error('Error occurred while fetching all SentEvents from DB', error)
-    throw new InternalServerError('Failed to fetch all SentEvents from DB')
+    console.error('error occurred while fetching all SentEvents from DB', error)
+    throw new InternalServerError('failed to fetch all SentEvents from DB')
   }
 }
 
@@ -180,8 +220,8 @@ export async function fetchAllSentEventsFromDB(
 //     return updatedSentEventDoc ? mapSentEventResponse(updatedSentEventDoc as any) : null
     
 //   } catch (error) {
-//     console.error('Error occurred while updating SentEvent in DB', error)
-//     throw new InternalServerError('Failed to update SentEvent in DB')
+//     console.error('error occurred while updating SentEvent in DB', error)
+//     throw new InternalServerError('failed to update SentEvent in DB')
 //   }
 // }
 
@@ -192,7 +232,7 @@ export async function fetchAllSentEventsFromDB(
 //       eventSender: eventSender
 //     })
 //   } catch (error) {
-//     console.error('Error occurred while deleting SentEvent from DB', error)
-//     throw new InternalServerError('Failed to delete SentEvent from DB')
+//     console.error('error occurred while deleting SentEvent from DB', error)
+//     throw new InternalServerError('failed to delete SentEvent from DB')
 //   }
 // }

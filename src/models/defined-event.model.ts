@@ -20,7 +20,7 @@ const DefinedEventSchema = new mongoose.Schema(
   {
     eventName: { type: String, required: true },
     eventDescription: { type: String, required: false },
-    eventCreator: { type: String, ref: 'UserToken', required: true },
+    eventCreator: { type: String, ref: 'UserV2', required: true },
   },
   {
     timestamps: true,

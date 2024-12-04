@@ -1,4 +1,5 @@
 import { DefinedEventResponse } from "./defined-event.types"
+import { UserV2TokenPublicResponse } from "./user-v2.types"
 
 export type SentEventRequest = {
   id: string
@@ -11,6 +12,7 @@ export type SentEventRequest = {
 export type SentEventResponse = {
   id: string
   eventSender: string
+  eventSenderUser: UserV2TokenPublicResponse | null
   eventName: string
   definedEvent: DefinedEventResponse
   createdAt: Date
@@ -24,4 +26,5 @@ export type SentEventQueryOptions = {
   orderDirection: string
   eventSender: string | null
   eventName: string | null
+  requestingPrimaryWallet: string
 }
