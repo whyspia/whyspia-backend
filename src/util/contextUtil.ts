@@ -5,7 +5,7 @@ export enum EMOTE_CONTEXTS {
   NOU = 'No U',
   WHYSPIA = 'whyspia',
   NANA = 'nana-context',
-  PARALLEL = 'parallel',
+  // PARALLEL = 'parallel',
   VIBE_CAFE = 'Vibe Cafe',
   VIBE_CAMP = 'Vibe Camp',
   AKIYA_COLLECTIVE = 'Akiya Collective',

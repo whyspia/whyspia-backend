@@ -5,7 +5,7 @@ import dotenv from 'dotenv'
 dotenv.config()
 import config from 'config'
 import express from 'express'
-import { Server } from 'socket.io'
+// import { Server } from 'socket.io'
 
 import { connectMongoDB } from './db/mongodb'
 import { requestLogger, setCorrelationId } from './middleware'
@@ -54,66 +54,66 @@ const server = app.listen(port, () => {
 })
 
 // socket.io setup
-const io = new Server(server, {
-  cors: {
-    origin: getFrontendURL()
-  }
-})
+// const io = new Server(server, {
+//   cors: {
+//     origin: getFrontendURL()
+//   }
+// })
 
-interface UserDisconnectTimers {
-  [userId: string]: NodeJS.Timeout;
-}
-const userDisconnectTimers: UserDisconnectTimers = {} // Data structure to store user disconnects based on their userID as key and a timer/timeout for the value that was created on disconnect. Good to store this bc then can cancel it if user reconnects before 10 minutes is up
+// interface UserDisconnectTimers {
+//   [userId: string]: NodeJS.Timeout;
+// }
+// const userDisconnectTimers: UserDisconnectTimers = {} // Data structure to store user disconnects based on their userID as key and a timer/timeout for the value that was created on disconnect. Good to store this bc then can cancel it if user reconnects before 10 minutes is up
 
 // Listen for Socket.IO connections
 // socket here is that one particular socket associated with that specific client/user
 
 // on connect - we just check if there are any detected user disconnects for this user and if so, delete them so disconnect emote is not sent - bc if we just reconnected in such a short amount of time, no need to say we disconnected (at least that is reasoning rn)
-io.on('connection', (socket) => {
-  console.log('new user connected through socketio')
+// io.on('connection', (socket) => {
+//   console.log('new user connected through socketio')
 
-  const bearerHeaderValue = socket.handshake.auth.token
-  const [, jwt] = bearerHeaderValue.split(' ')
-  const userID = decodeAuthToken(jwt) as string
-  if (userDisconnectTimers[userID]) {
-    clearTimeout(userDisconnectTimers[userID]) // Cancel the timer if user reconnects
-    delete userDisconnectTimers[userID]
-  }
+//   const bearerHeaderValue = socket.handshake.auth.token
+//   const [, jwt] = bearerHeaderValue.split(' ')
+//   const userID = decodeAuthToken(jwt) as string
+//   if (userDisconnectTimers[userID]) {
+//     clearTimeout(userDisconnectTimers[userID]) // Cancel the timer if user reconnects
+//     delete userDisconnectTimers[userID]
+//   }
 
-  // Listen for chat messages
-  socket.on('chat message', (msg) => {
-    console.log('Message: ' + msg)
-    // Broadcast the message to all connected clients
-    io.emit('chat message', msg)
-  })
+//   // Listen for chat messages
+//   socket.on('chat message', (msg) => {
+//     console.log('Message: ' + msg)
+//     // Broadcast the message to all connected clients
+//     io.emit('chat message', msg)
+//   })
 
-  socket.on("reconnect", () => {
-    console.log('reconnect inside connection')
-  })
+//   socket.on("reconnect", () => {
+//     console.log('reconnect inside connection')
+//   })
 
-  // Listen for disconnections - this is called by socketio itself in multiple scenarios - so, often triggered by not-our-code
-  socket.on('disconnect', () => {
-    console.log('a user disconnected from socketio')
+//   // Listen for disconnections - this is called by socketio itself in multiple scenarios - so, often triggered by not-our-code
+//   socket.on('disconnect', () => {
+//     console.log('a user disconnected from socketio')
 
-    const bearerHeaderValue = socket.handshake.auth.token
-    const [, jwt] = bearerHeaderValue.split(' ')
-    const userID = decodeAuthToken(jwt) as string
-    userDisconnectTimers[userID] = setTimeout(async () => {
-      // If no new connection after 10 minutes, send emote saying this user is offline in parallel
-      const userToken = await UserTokenModel.findById(userID)
-      const requestData = {
-        // NOTE: this could possibly be null is rare scenarios and causes issues - just remember
-        senderTwitterUsername: userToken?.twitterUsername,
-        receiverSymbols: [EMOTE_CONTEXTS.PARALLEL],
-        sentSymbols: ['im offline'],
-      }
-      // createEmoteInDB(requestData)
-      console.log('SENT EMOTE THAT USER IS NO LONGER ONLINE ON PARALLEL')
-      delete userDisconnectTimers[userID]
-    }, 30000) // 600000 is 10 minutes in milliseconds - so function is called 10 minutes after socketio disconnect
-  })
-})
+//     const bearerHeaderValue = socket.handshake.auth.token
+//     const [, jwt] = bearerHeaderValue.split(' ')
+//     const userID = decodeAuthToken(jwt) as string
+//     userDisconnectTimers[userID] = setTimeout(async () => {
+//       // If no new connection after 10 minutes, send emote saying this user is offline in parallel
+//       const userToken = await UserTokenModel.findById(userID)
+//       const requestData = {
+//         // NOTE: this could possibly be null is rare scenarios and causes issues - just remember
+//         senderTwitterUsername: userToken?.twitterUsername,
+//         receiverSymbols: [EMOTE_CONTEXTS.PARALLEL],
+//         sentSymbols: ['im offline'],
+//       }
+//       // createEmoteInDB(requestData)
+//       console.log('SENT EMOTE THAT USER IS NO LONGER ONLINE ON PARALLEL')
+//       delete userDisconnectTimers[userID]
+//     }, 30000) // 600000 is 10 minutes in milliseconds - so function is called 10 minutes after socketio disconnect
+//   })
+// })
 
-io.on("reconnect", () => {
-  console.log('reconnect outside connection')
-})
+// io.on("reconnect", () => {
+//   console.log('reconnect outside connection')
+// })

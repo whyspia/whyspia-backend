@@ -7,7 +7,6 @@ import { symbolRouter } from './symbol'
 import { symbolDefinitionRouter } from './symbol-definition'
 import { emoteRouter } from './emote'
 import { emoteNotifRouter } from './emote-notif'
-import { parallelRouter } from './parallel-context'
 import { pingpplContextRouter } from './pingppl-context'
 import { tauRouter } from './tau'
 import { savedPersonRouter } from './saved-person'
@@ -22,7 +21,6 @@ routes.use('/symbol', symbolRouter)
 routes.use('/symbol-definition', symbolDefinitionRouter)
 routes.use('/emote', emoteRouter)
 routes.use('/emote-notif', emoteNotifRouter)
-routes.use('/parallel', parallelRouter)
 routes.use('/pingppl', pingpplContextRouter)
 routes.use('/tau', tauRouter)
 routes.use('/saved-person', savedPersonRouter)
