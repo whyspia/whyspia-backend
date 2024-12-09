@@ -1,7 +1,6 @@
 import { Router } from 'express'
 
 import { generalRouter } from './general'
-import { userTokenRouter } from './user-token'
 import { userV2TokenRouter } from './user-v2'
 import { symbolRouter } from './symbol'
 import { symbolDefinitionRouter } from './symbol-definition'
@@ -15,7 +14,6 @@ const routes = Router()
 
 // routers
 routes.use('/general', generalRouter)
-routes.use('/user-token', userTokenRouter)
 routes.use('/user-v2', userV2TokenRouter)
 routes.use('/symbol', symbolRouter)
 routes.use('/symbol-definition', symbolDefinitionRouter)

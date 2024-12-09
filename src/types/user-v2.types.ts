@@ -34,6 +34,7 @@ export type UserV2TokensQueryOptions = {
   orderDirection: string
   search: string | null
   filterWallets: string[]
+  requestingPrimaryWallet: string | null
 }
 
 export type UserV2LoginInitiation = {

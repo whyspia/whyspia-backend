@@ -10,10 +10,6 @@ import express from 'express'
 import { connectMongoDB } from './db/mongodb'
 import { requestLogger, setCorrelationId } from './middleware'
 import { routes } from './routes'
-import { getFrontendURL } from './util/seoConstantsUtil'
-import { decodeAuthToken } from './util/jwtTokenUtil'
-import { EMOTE_CONTEXTS } from './util/contextUtil'
-import { UserTokenModel } from './models/user-token.model'
 
 const CLIENT_HOST_DOMAIN = config.get<string>('client.hostDomain')
 

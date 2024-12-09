@@ -8,7 +8,7 @@ import {
   fetchUserTokenPublicValidation,
   updateUserTokenValidation,
 } from '../validations/user-token.validation'
-import { completeLogin, fetchUserV2TokenPrivate, fetchUserV2TokenPublic, initiateLogin, updateUserToken } from '../controllers/user-v2.controller'
+import { completeLogin, fetchAllUserV2Tokens, fetchUserV2TokenPrivate, fetchUserV2TokenPublic, initiateLogin, updateUserToken } from '../controllers/user-v2.controller'
 
 export const userV2TokenRouter = express.Router()
 
@@ -38,6 +38,14 @@ userV2TokenRouter.get(
   validateRequest,
   optionalAuthenticateAndSetAccount,
   fetchUserV2TokenPublic
+)
+
+userV2TokenRouter.get(
+  '',
+  fetchAllUserTokensValidation,
+  validateRequest,
+  optionalAuthenticateAndSetAccount,
+  fetchAllUserV2Tokens
 )
 
 userV2TokenRouter.put(

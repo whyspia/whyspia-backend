@@ -259,6 +259,7 @@ export async function getUserTokenWithDisplayName(
   }
 }
 
+// it seems youll only get userDoc if user part of field mapping in the record has user object - which pretty much only comes from lookup of aggregates at the moment
 // @docs - can be any list of records that contain 1 or more wallets that need their userTokens fetched
 // @return object where index is primaryWallet and value is userToken of that wallet
 export async function getMappingListOfWalletToUserToken(
@@ -311,7 +312,7 @@ export async function fetchAllUserV2TokensFromDB(
   options: UserV2TokensQueryOptions
 ) {
   try {
-    const { skip, limit, orderBy, search, filterWallets } = options
+    const { skip, limit, orderBy, search, filterWallets, requestingPrimaryWallet } = options
     const orderDirection = options.orderDirection === 'asc' ? 1 : -1
 
     // Sorting Options
@@ -327,11 +328,8 @@ export async function fetchAllUserV2TokensFromDB(
     if (search) {
       filterOptions.push({
         $or: [
-          {
-            primaryWallet: {
-              $regex: new RegExp(search, 'i'),
-            },
-          },
+          { primaryWallet: { $regex: new RegExp(search, 'iu'), }, },
+          { chosenPublicName: { $regex: new RegExp(search, 'iu'), }, },
         ],
       })
     }
@@ -348,9 +346,17 @@ export async function fetchAllUserV2TokensFromDB(
       .skip(skip)
       .limit(limit)
 
-    return userV2Tokens.map((userV2Token) =>
-      mapUserV2TokenPrivateResponse(userV2Token)
-    )
+    const userWithDisplayNameMap = {} as any
+    for (const userToken of userV2Tokens) {
+      const userWithDisplayName = await getUserTokenWithDisplayName(userToken, requestingPrimaryWallet)
+      userWithDisplayNameMap[userToken.primaryWallet] = userWithDisplayName
+    }
+
+    return userV2Tokens.map((userV2Token) => {
+      const userTokenWithDisplayName = userWithDisplayNameMap[userV2Token.primaryWallet]
+      const finalUserToken = userTokenWithDisplayName ?? userV2Token
+      return mapUserV2TokenPublicResponse(finalUserToken as any)
+    })
   } catch (error) {
     console.error('error occurred while fetching userv2 tokens', error)
     throw new InternalServerError('error occurred while fetching userv2 tokens')
