@@ -1,8 +1,5 @@
 import express from 'express'
 
-import {
-  fetchAllTwitterUserTokens,
-} from '../controllers/user-token.controller'
 import { authenticateAndSetAccount, optionalAuthenticateAndSetAccount } from '../middleware/authentication'
 import { validateRequest } from '../middleware/validateRequest'
 import {
@@ -41,14 +38,6 @@ userV2TokenRouter.get(
   validateRequest,
   optionalAuthenticateAndSetAccount,
   fetchUserV2TokenPublic
-)
-
-userV2TokenRouter.get(
-  '',
-  fetchAllUserTokensValidation,
-  validateRequest,
-  optionalAuthenticateAndSetAccount,
-  fetchAllTwitterUserTokens
 )
 
 userV2TokenRouter.put(

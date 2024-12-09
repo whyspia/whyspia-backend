@@ -14,7 +14,7 @@ export async function getContextOfEmote(inputEmote: EmoteResponse | null, emoteI
     }
 
     // get emote using emoteID to first get the timestamp
-    inputEmoteFromID = await fetchEmoteFromDB(emoteID, true)
+    inputEmoteFromID = await fetchEmoteFromDB({ emoteID, skipContext: true })
   }
   
   const inputEmoteFinal = inputEmote ?? inputEmoteFromID
@@ -29,7 +29,7 @@ export async function getContextOfEmote(inputEmote: EmoteResponse | null, emoteI
     limit: 10,  // NOTE: this limits number of contexts at once
     orderBy: 'createdAt',
     orderDirection: 'desc',
-    senderTwitterUsername: null,
+    senderPrimaryWallet: null,
     receiverSymbols: null,
     sentSymbols: null,
     createdAt: inputEmoteFinal?.createdAt,
@@ -46,7 +46,7 @@ export async function getContextOfEmote(inputEmote: EmoteResponse | null, emoteI
   
   for (const sameTimestampEmote of Object.values(sameTimestampEmotes)) {
     // there will be certain contexts where this is the case and some where this is not the case
-    const isSenderSameInSameTimestampEmoteAsMainEmote = sameTimestampEmote.senderTwitterUsername === inputEmoteFinal?.senderTwitterUsername
+    const isSenderSameInSameTimestampEmoteAsMainEmote = sameTimestampEmote.senderPrimaryWallet === inputEmoteFinal?.senderPrimaryWallet
 
     if (isSenderSameInSameTimestampEmoteAsMainEmote) {
 

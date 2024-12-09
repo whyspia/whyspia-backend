@@ -12,7 +12,7 @@ import { createSymbolInDB, fetchAllSymbolsFromDB } from './symbol.service'
 export async function createSymbolDefinitionInDB(symbolDefinitionData: Partial<SymbolDefinitionRequest>): Promise<SymbolDefinitionResponse | null> {
   try {
     const symbolDefinitionResponse = await fetchSymbolDefinitionFromDB({
-      senderTwitterUsername: symbolDefinitionData.senderTwitterUsername,
+      senderPrimaryWallet: symbolDefinitionData.senderPrimaryWallet,
       symbolDefinition: symbolDefinitionData.symbolDefinition,
       symbol: symbolDefinitionData.symbol
     } as any)
@@ -20,7 +20,7 @@ export async function createSymbolDefinitionInDB(symbolDefinitionData: Partial<S
     if (symbolDefinitionResponse) {
       // throw new InternalServerError('If definition for this symbol already exists for this person, do not let them use this API. They should use update API')
       const updatedSymbolDefinition = await updateSymbolDefinitionInDB({
-        senderTwitterUsername: symbolDefinitionData.senderTwitterUsername,
+        senderPrimaryWallet: symbolDefinitionData.senderPrimaryWallet,
         symbol: symbolDefinitionData.symbol,
         updatedDefinition: symbolDefinitionData.symbolDefinition,
         pastDefinitionResponse: symbolDefinitionResponse,
@@ -37,7 +37,7 @@ export async function createSymbolDefinitionInDB(symbolDefinitionData: Partial<S
     }
 
     const symbolDefinitionBuildData = {
-      senderTwitterUsername: symbolDefinitionData.senderTwitterUsername as string,
+      senderPrimaryWallet: symbolDefinitionData.senderPrimaryWallet as string,
       symbol: symbolDefinitionData?.symbol?.toLowerCase() as string,
       currentDefinition: symbolDefinitionData.symbolDefinition as string,
       pastDefinitions: null
@@ -53,11 +53,11 @@ export async function createSymbolDefinitionInDB(symbolDefinitionData: Partial<S
 
 // This method fetches one single definition from one single user
 export async function fetchSymbolDefinitionFromDB({
-  senderTwitterUsername,
+  senderPrimaryWallet,
   symbolDefinitionId,
   symbol,
 }: {
-  senderTwitterUsername: string
+  senderPrimaryWallet: string
   symbolDefinitionId: string
   symbol: string
 }): Promise<SymbolDefinitionResponse | null> {
@@ -67,7 +67,7 @@ export async function fetchSymbolDefinitionFromDB({
         { _id: symbolDefinitionId && symbolDefinitionId !== '' ? symbolDefinitionId : null, },
         { symbol: { $regex: new RegExp("^" + symbol + "$", 'iu') }, }
       ],
-      senderTwitterUsername: { $regex: new RegExp("^" + senderTwitterUsername + "$", 'iu') },
+      senderPrimaryWallet: { $regex: new RegExp("^" + senderPrimaryWallet + "$", 'iu') },
     })
     return symbolDefinitionDoc ? mapSymbolDefinitionResponse(symbolDefinitionDoc as any) : null
   } catch (error) {
@@ -81,7 +81,7 @@ export async function fetchAllSymbolDefinitionsFromDB(
 ): Promise<SymbolDefinitionResponse[]> {
   try {
 
-    const { skip, limit, orderBy, senderTwitterUsername, symbol, symbolDefinition } = options
+    const { skip, limit, orderBy, senderPrimaryWallet, symbol, symbolDefinition } = options
     const orderDirection = options.orderDirection === 'asc' ? 1 : -1
 
     // Sorting Options
@@ -92,10 +92,10 @@ export async function fetchAllSymbolDefinitionsFromDB(
     // Filter Options
     const filterOptions: FilterQuery<SymbolDefinitionDocument>[] = []
 
-    if (senderTwitterUsername) {
+    if (senderPrimaryWallet) {
       filterOptions.push({
         $or: [
-          { senderTwitterUsername: { $regex: new RegExp("^" + senderTwitterUsername + "$", 'iu') } },
+          { senderPrimaryWallet: { $regex: new RegExp("^" + senderPrimaryWallet + "$", 'iu') } },
         ],
       })
     }
@@ -135,22 +135,22 @@ export async function fetchAllSymbolDefinitionsFromDB(
 
 export async function updateSymbolDefinitionInDB(
 {
-  senderTwitterUsername,
+  senderPrimaryWallet,
   symbol,
   symbolDefinitionId,
   updatedDefinition,
   pastDefinitionResponse = null,
 }: {
-  senderTwitterUsername: string
+  senderPrimaryWallet: string
   symbol: string
   symbolDefinitionId: string
   updatedDefinition: string
   pastDefinitionResponse?: Partial<SymbolDefinitionResponse> | null
 }): Promise<SymbolDefinitionResponse | null> {
   try {
-    const symbolDefinitionResponse = pastDefinitionResponse ? pastDefinitionResponse : await fetchSymbolDefinitionFromDB({ senderTwitterUsername, symbolDefinitionId, symbol })
+    const symbolDefinitionResponse = pastDefinitionResponse ? pastDefinitionResponse : await fetchSymbolDefinitionFromDB({ senderPrimaryWallet, symbolDefinitionId, symbol })
     
-    if (symbolDefinitionResponse && symbolDefinitionResponse.senderTwitterUsername === senderTwitterUsername) {
+    if (symbolDefinitionResponse && symbolDefinitionResponse.senderPrimaryWallet === senderPrimaryWallet) {
 
       // TODO timestamp is createdAt which never changes. This needs to be updatedAt actually
       const newPastDef = { definition: symbolDefinitionResponse?.currentDefinition, dateCreated: symbolDefinitionResponse?.timestamp }
@@ -163,7 +163,7 @@ export async function updateSymbolDefinitionInDB(
             { _id: symbolDefinitionId && symbolDefinitionId !== '' ? symbolDefinitionId : null, },
             { symbol: { $regex: new RegExp("^" + symbol + "$", 'iu') }, }
           ],
-          senderTwitterUsername: { $regex: new RegExp("^" + senderTwitterUsername + "$", 'iu') },
+          senderPrimaryWallet: { $regex: new RegExp("^" + senderPrimaryWallet + "$", 'iu') },
         },
         {
           currentDefinition: updatedDefinition,

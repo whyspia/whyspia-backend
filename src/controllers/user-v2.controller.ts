@@ -100,14 +100,14 @@ export async function fetchUserV2TokenPrivate(req: Request, res: Response) {
       | UserV2TokenPrivateResponse
       | null
       | undefined
-    // const twitterUsername = req.query.twitterUsername
-    //   ? (req.query.twitterUsername as string)
+    // const primaryWallet = req.query.primaryWallet
+    //   ? (req.query.primaryWallet as string)
     //   : null
     const userTokenID = decodedAccount?.id as string
 
     const userToken = await fetchUserV2TokenPrivateFromDB({
       userTokenID,
-      // twitterUsername,
+      // primaryWallet,
     })
 
     return handleSuccess(res, { userToken })
@@ -138,34 +138,3 @@ export async function fetchUserV2TokenPublic(req: Request, res: Response) {
     return handleError(res, error, 'unable to fetch the public userv2 token')
   }
 }
-
-// export async function fetchAllTwitterUserTokens(req: Request, res: Response) {
-//   try {
-//     const skip = Number.parseInt(req.query.skip as string) || 0
-//     const limit = Number.parseInt(req.query.limit as string) || 10
-//     const orderBy = req.query.orderBy as keyof UserTokenResponse
-//     const orderDirection =
-//       (req.query.orderDirection as string | undefined) ?? 'desc'
-//     const search = (req.query.search as string) || null
-//     const filterWallets =
-//       (req.query.filterWallets as string | undefined)?.split(',') ?? []
-
-//     const options: UserTokensQueryOptions = {
-//       skip,
-//       limit,
-//       orderBy,
-//       orderDirection,
-//       search,
-//       filterWallets,
-//     }
-
-//     const userTokens = await fetchAllTwitterUserTokensFromWeb2(options)
-//     return handleSuccess(res, { userTokens })
-//   } catch (error) {
-//     console.error(
-//       'Error occurred while fetching all the ideamarket posts',
-//       error
-//     )
-//     return handleError(res, error, 'Unable to fetch the ideamarket posts')
-//   }
-// }

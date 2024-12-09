@@ -16,20 +16,21 @@ import type { EmoteNoUContextQueryOptions, EmoteNouChainQueryOptions, EmoteQuery
 export async function createEmote(req: Request, res: Response) {
   try {
     const decodedAccount = (req as any).decodedAccount as DECODED_ACCOUNT
+    const requestingPrimaryWallet = decodedAccount?.primaryWallet
     const reqBody = req.body
     const receiverSymbols = (reqBody.receiverSymbols as string | undefined)?.split(',') ?? []
     const sentSymbols = (reqBody.sentSymbols as string | undefined)?.split(',') ?? []
     const bAgentDecidedSendNotifToReceiver = reqBody.bAgentDecidedSendNotifToReceiver ?? false
     const requestData = {
-      senderTwitterUsername: decodedAccount.twitterUsername,
+      senderPrimaryWallet: decodedAccount.primaryWallet,
       receiverSymbols,
       sentSymbols,
     }
-    const emote = await createEmoteInDB(requestData, bAgentDecidedSendNotifToReceiver)
+    const emote = await createEmoteInDB(requestData, bAgentDecidedSendNotifToReceiver, requestingPrimaryWallet)
     return handleSuccess(res, { emote })
   } catch (error) {
-    console.error('Error occurred while creating emote', error)
-    return handleError(res, error, 'Unable to create emote')
+    console.error('error occurred while creating emote', error)
+    return handleError(res, error, 'unable to create emote')
   }
 }
 
@@ -46,7 +47,7 @@ export async function createEmotes(req: Request, res: Response) {
       const sentSymbols = (emoteData.sentSymbols) ?? []
       const bAgentDecidedSendNotifToReceiver = (emoteData.bAgentDecidedSendNotifToReceiver) ?? false
       const requestData = {
-        senderTwitterUsername: decodedAccount.twitterUsername,
+        senderPrimaryWallet: decodedAccount.primaryWallet,
         receiverSymbols,
         sentSymbols,
         createdAt: currentDateTime,
@@ -57,31 +58,35 @@ export async function createEmotes(req: Request, res: Response) {
 
     return handleSuccess(res, { emotes: results })
   } catch (error) {
-    console.error('Error occurred while creating emotes', error)
-    return handleError(res, error, 'Unable to create emotes')
+    console.error('error occurred while creating emotes', error)
+    return handleError(res, error, 'unable to create emotes')
   }
 }
 
 export async function fetchEmote(req: Request, res: Response) {
   try {
+    const decodedAccount = (req as any).decodedAccount as DECODED_ACCOUNT
+    const requestingPrimaryWallet = decodedAccount?.primaryWallet
     const emoteID = req.query.emoteID as string
-    const emote = await fetchEmoteFromDB(emoteID)
+    const emote = await fetchEmoteFromDB({ emoteID, requestingPrimaryWallet })
     return handleSuccess(res, { emote })
   } catch (error) {
-    console.error('Error occurred while fetching emote', error)
-    return handleError(res, error, 'Unable to fetch emote')
+    console.error('error occurred while fetching emote', error)
+    return handleError(res, error, 'unable to fetch emote')
   }
 }
 
 export async function fetchAllEmotes(req: Request, res: Response) {
   try {
+    const decodedAccount = (req as any).decodedAccount as DECODED_ACCOUNT
+    const requestingPrimaryWallet = decodedAccount?.primaryWallet
     const skip = Number.parseInt(req.query.skip as string) || 0
     const limit = Number.parseInt(req.query.limit as string) || 10
     const orderBy = req.query.orderBy as keyof EmoteResponse
     const orderDirection =
       (req.query.orderDirection as string | undefined) ?? 'desc'
     // const search = (req.query.search as string) || null
-    const senderTwitterUsername = (req.query.senderTwitterUsername as string) || null
+    const senderPrimaryWallet = (req.query.senderPrimaryWallet as string) || null
     const receiverSymbols = req.query.receiverSymbols && req.query.receiverSymbols !== '' ? (req.query.receiverSymbols as string | undefined)?.split(',') as any : []
     const sentSymbols = req.query.sentSymbols && req.query.sentSymbols !== '' ? (req.query.sentSymbols as string | undefined)?.split(',') as any : []
     const createdAt = (req.query.createdAt as string) || null // filter by emotes createdAt this datetime
@@ -92,18 +97,19 @@ export async function fetchAllEmotes(req: Request, res: Response) {
       limit,
       orderBy,
       orderDirection,
-      senderTwitterUsername,
+      senderPrimaryWallet,
       receiverSymbols,
       sentSymbols,
       createdAt,
-      context
+      context,
+      requestingPrimaryWallet,
     }
 
     const emotes = await fetchAllEmotesFromDB(options)
     return handleSuccess(res, { emotes })
   } catch (error) {
-    console.error('Error occurred while fetching all emotes', error)
-    return handleError(res, error, 'Unable to fetch all emotes')
+    console.error('error occurred while fetching all emotes', error)
+    return handleError(res, error, 'unable to fetch all emotes')
   }
 }
 
@@ -111,13 +117,14 @@ export async function fetchAllEmotes(req: Request, res: Response) {
 export async function fetchUnrespondedEmotes(req: Request, res: Response) {
   try {
     const decodedAccount = (req as any).decodedAccount as DECODED_ACCOUNT
+    const requestingPrimaryWallet = decodedAccount?.primaryWallet
     const skip = Number.parseInt(req.query.skip as string) || 0
     const limit = Number.parseInt(req.query.limit as string) || 10
     const orderBy = req.query.orderBy as keyof EmoteResponse
     const orderDirection =
       (req.query.orderDirection as string | undefined) ?? 'desc'
     // const search = (req.query.search as string) || null
-    const senderTwitterUsername = (req.query.senderTwitterUsername as string) || null
+    const senderPrimaryWallet = (req.query.senderPrimaryWallet as string) || null
     // const receiverSymbols = req.query.receiverSymbols && req.query.receiverSymbols !== '' ? (req.query.receiverSymbols as string | undefined)?.split(',') as any : []
     const sentSymbols = req.query.sentSymbols && req.query.sentSymbols !== '' ? (req.query.sentSymbols) as any : []
     const fetchSentOrReceived = (req.query.fetchSentOrReceived as string) ?? 'received'
@@ -128,22 +135,25 @@ export async function fetchUnrespondedEmotes(req: Request, res: Response) {
       orderBy,
       orderDirection,
       // search,
-      senderTwitterUsername,
+      senderPrimaryWallet,
       receiverSymbols: [],
       sentSymbols,
       fetchSentOrReceived,
+      requestingPrimaryWallet,
     }
 
-    const emotes = await fetchUnrespondedEmotesFromDB(decodedAccount?.twitterUsername, options)
+    const emotes = await fetchUnrespondedEmotesFromDB(decodedAccount?.primaryWallet, options)
     return handleSuccess(res, { emotes })
   } catch (error) {
-    console.error('Error occurred while fetching unresponded emotes', error)
-    return handleError(res, error, 'Unable to fetch unresponded emotes')
+    console.error('error occurred while fetching unresponded emotes', error)
+    return handleError(res, error, 'unable to fetch unresponded emotes')
   }
 }
 
 export async function fetchEmoteReplyChain(req: Request, res: Response) {
   try {
+    const decodedAccount = (req as any).decodedAccount as DECODED_ACCOUNT
+    const requestingPrimaryWallet = decodedAccount?.primaryWallet
     const emoteID = req.query.emoteID as string
     // const decodedAccount = (req as any).decodedAccount as DECODED_ACCOUNT
     const skip = Number.parseInt(req.query.skip as string) || 0
@@ -159,11 +169,11 @@ export async function fetchEmoteReplyChain(req: Request, res: Response) {
       orderDirection,
     }
 
-    const emotes = await findEmoteReplyChainInDB(emoteID, options)
+    const emotes = await findEmoteReplyChainInDB(emoteID, options, requestingPrimaryWallet)
     return handleSuccess(res, { emotes })
   } catch (error) {
-    console.error('Error occurred while fetching fetchEmoteReplyChain', error)
-    return handleError(res, error, 'Unable to fetch fetchEmoteReplyChain')
+    console.error('error occurred while fetching fetchEmoteReplyChain', error)
+    return handleError(res, error, 'unable to fetch fetchEmoteReplyChain')
   }
 }
 
@@ -175,8 +185,8 @@ export async function fetchEmoteReplyChain(req: Request, res: Response) {
 //     const updatedemote = await updateemoteInDB(emoteId, updatedData)
 //     return handleSuccess(res, { updatedemote })
 //   } catch (error) {
-//     console.error('Error occurred while updating emote', error)
-//     return handleError(res, error, 'Unable to update emote')
+//     console.error('error occurred while updating emote', error)
+//     return handleError(res, error, 'unable to update emote')
 //   }
 // }
 
@@ -186,7 +196,7 @@ export async function deleteEmote(req: Request, res: Response) {
     await deleteEmoteInDB(emoteId)
     return handleSuccess(res, { message: `Emote with ID ${emoteId} has been deleted` })
   } catch (error) {
-    console.error('Error occurred while deleting emote', error)
-    return handleError(res, error, 'Unable to delete emote')
+    console.error('error occurred while deleting emote', error)
+    return handleError(res, error, 'unable to delete emote')
   }
 }

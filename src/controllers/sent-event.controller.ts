@@ -23,7 +23,7 @@ export async function createSentEvent(req: Request, res: Response) {
 
     // send ze emote out
     // const emoteRequestData = {
-    //   senderTwitterUsername: decodedAccount?.primaryWallet,
+    //   senderPrimaryWallet: decodedAccount?.primaryWallet,
     //   receiverSymbols: [EMOTE_CONTEXTS.PINGPPL],
     //   sentSymbols: ["PING: " + reqBody.eventName],
     // }
@@ -57,7 +57,7 @@ export async function createDefinedEventAndThenSentEvent(req: Request, res: Resp
 
     // send ze emote out
     // const emoteRequestData = {
-    //   senderTwitterUsername: decodedAccount?.primaryWallet,
+    //   senderPrimaryWallet: decodedAccount?.primaryWallet,
     //   receiverSymbols: [EMOTE_CONTEXTS.PINGPPL],
     //   sentSymbols: ["PINGPLAN&PING: " + reqBody.eventName],
     // }

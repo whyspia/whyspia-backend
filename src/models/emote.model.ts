@@ -1,7 +1,7 @@
 import mongoose from 'mongoose'
 
 export interface IEmote {
-  senderTwitterUsername: string
+  senderPrimaryWallet: string
   receiverSymbols: string[]
   sentSymbols: string[]
 }
@@ -11,15 +11,15 @@ interface IEmoteModel extends mongoose.Model<EmoteDocument> {
 }
 
 interface EmoteDocument extends mongoose.Document {
-  senderTwitterUsername: string
+  senderPrimaryWallet: string
   receiverSymbols: string[]
   sentSymbols: string[]
 }
 
 const EmoteSchema = new mongoose.Schema(
   {
-    senderTwitterUsername: { type: String, ref: 'UserToken', required: true },
-    receiverSymbols: [{ type: String, ref: 'UserToken', required: true }],
+    senderPrimaryWallet: { type: String, ref: 'UserV2', required: true },
+    receiverSymbols: [{ type: String, ref: 'UserV2', required: true }],
     sentSymbols: [{ type: String, required: true }],
   },
   {

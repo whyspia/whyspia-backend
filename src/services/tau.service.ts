@@ -8,7 +8,7 @@ import { mapTAUResponse } from '../util/tauUtil'
 import { createEmoteNotifInDB } from './emote-notif.service'
 import { NOTIF_TYPE } from '../models/emote-notif.model'
 import { UserV2Model } from '../models/user-v2.model'
-import { fetchUserV2TokenPublicFromDB, getUserTokenWithDisplayName } from './user-v2.service'
+import { fetchUserV2TokenPublicFromDB, getUserTokenWithDisplayName, getMappingListOfWalletToUserToken } from './user-v2.service'
 
 export async function createTAUInDB(tauData: Partial<TAURequest>): Promise<TAUResponse | null> {
   try {
@@ -153,24 +153,12 @@ export async function fetchAllTAUsFromDB(
       { $limit: limit }
     ])
 
-    // for each senderPrimaryWallet AND receiverPrimaryWallet, return their userToken. if there is a requestingUser, fetch those 2 userTokens with names relative to requestingUser
-    // TODO: may be issue here where iterating way too many times if just getting list where all records have same senderUser OR all have same receiverUser or maybe even both
-    const userWithDisplayNameMap = {} as any
-    for (const tauDoc of tauDocs) {
-      const senderUserDoc = tauDoc.senderUser[0]
-      const receiverUserDoc = tauDoc.receiverUser[0]
-
-      // if user not in DB, use fetchUserV2TokenPublicFromDB to get fake user response (bc even tho no user, there was wallet given in interaction)
-      const senderUserWithDisplayName = senderUserDoc
-        ? await getUserTokenWithDisplayName(senderUserDoc, requestingPrimaryWallet)
-        : await fetchUserV2TokenPublicFromDB({ primaryWallet: tauDoc?.senderPrimaryWallet, requestingPrimaryWallet })
-      const receiverUserWithDisplayName = receiverUserDoc
-        ? await getUserTokenWithDisplayName(receiverUserDoc, requestingPrimaryWallet)
-        : await fetchUserV2TokenPublicFromDB({ primaryWallet: tauDoc?.receiverPrimaryWallet, requestingPrimaryWallet })
-
-      userWithDisplayNameMap[tauDoc.senderPrimaryWallet] = senderUserWithDisplayName
-      userWithDisplayNameMap[tauDoc.receiverPrimaryWallet] = receiverUserWithDisplayName
+    // get userTokens for each wallet (also handles calculatedDisplayName of each user relative to requestingPrimaryWallet)
+    const fieldMapping = {
+      senderPrimaryWallet: 'senderUser',
+      receiverPrimaryWallet: 'receiverUser'
     }
+    const userWithDisplayNameMap = await getMappingListOfWalletToUserToken(tauDocs, fieldMapping, requestingPrimaryWallet)
   
     return tauDocs.map(doc => {
       const senderUser = userWithDisplayNameMap[doc.senderPrimaryWallet]

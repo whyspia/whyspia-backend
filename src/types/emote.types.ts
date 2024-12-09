@@ -1,8 +1,8 @@
-import { UserTokenResponse } from "./user-token.types"
+import { UserV2TokenPublicResponse } from "./user-v2.types"
 
 export type EmoteRequest = {
   id: string
-  senderTwitterUsername: string
+  senderPrimaryWallet: string
   receiverSymbols: string[]
   sentSymbols: string[]
   createdAt: Date
@@ -10,8 +10,10 @@ export type EmoteRequest = {
 
 export type EmoteResponse = {
   id: string
-  senderTwitterUsername: string
+  senderPrimaryWallet: string
+  senderUser: UserV2TokenPublicResponse | null
   receiverSymbols: string[]
+  receiverUsers?: UserV2TokenPublicResponse[] | null
   sentSymbols: string[]
   createdAt: Date
   context?: string
@@ -19,8 +21,10 @@ export type EmoteResponse = {
 
 export type EmoteResponseWithNoUChainPreviews = {
   id: string
-  senderTwitterUsername: string
+  senderPrimaryWallet: string
+  senderUser: UserV2TokenPublicResponse | null
   receiverSymbols: string[]
+  receiverUsers?: UserV2TokenPublicResponse[] | null
   sentSymbols: string[]
   createdAt: Date
   context?: string
@@ -33,11 +37,12 @@ export type EmoteQueryOptions = {
   limit: number
   orderBy: keyof EmoteResponse
   orderDirection: string
-  senderTwitterUsername: string | null
+  senderPrimaryWallet: string | null
   receiverSymbols: string[] | null
   sentSymbols: string[] | null
   createdAt: string | null
   context: string | null
+  requestingPrimaryWallet: string
 }
 
 export type EmoteNoUContextQueryOptions = {
@@ -45,10 +50,11 @@ export type EmoteNoUContextQueryOptions = {
   limit: number
   orderBy: keyof EmoteResponse
   orderDirection: string
-  senderTwitterUsername: string | null
+  senderPrimaryWallet: string | null
   receiverSymbols: string[] | null
   sentSymbols: string[] | null
   fetchSentOrReceived: string
+  requestingPrimaryWallet: string
 }
 
 export type EmoteNouChainQueryOptions = {

@@ -24,7 +24,7 @@ export async function createDefinedEvent(req: Request, res: Response) {
 
     // send ze emote out
     // const emoteRequestData = {
-    //   senderTwitterUsername: decodedAccount?.primaryWallet,
+    //   senderPrimaryWallet: decodedAccount?.primaryWallet,
     //   receiverSymbols: [EMOTE_CONTEXTS.PINGPPL],
     //   sentSymbols: ["PINGPLAN: " + reqBody.eventName],
     // }

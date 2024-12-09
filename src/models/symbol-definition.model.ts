@@ -1,7 +1,7 @@
 import mongoose from 'mongoose'
 
 export interface ISymbolDefinition {
-  senderTwitterUsername: string
+  senderPrimaryWallet: string
   symbol: string
   currentDefinition: string
   pastDefinitions: Array<{ definition: string; dateCreated: Date }> | null
@@ -12,7 +12,7 @@ interface ISymbolDefinitionModel extends mongoose.Model<SymbolDefinitionDocument
 }
 
 interface SymbolDefinitionDocument extends mongoose.Document {
-  senderTwitterUsername: string
+  senderPrimaryWallet: string
   symbol: string
   currentDefinition: string
   pastDefinitions: Array<{ definition: string; dateCreated: Date }> | null
@@ -20,7 +20,7 @@ interface SymbolDefinitionDocument extends mongoose.Document {
 
 const SymbolDefinitionSchema = new mongoose.Schema(
   {
-    senderTwitterUsername: { type: String, ref: 'UserToken', required: true },
+    senderPrimaryWallet: { type: String, ref: 'UserV2', required: true },
     symbol: { type: String, ref: 'Symbol', required: true },
     currentDefinition: { type: String, required: true },
     pastDefinitions: [

@@ -1,6 +1,6 @@
 export type SymbolDefinitionRequest = {
   id: string
-  senderTwitterUsername: string
+  senderPrimaryWallet: string
   symbol: string
   symbolDefinition: string
   timestamp: Date
@@ -8,7 +8,7 @@ export type SymbolDefinitionRequest = {
 
 export type SymbolDefinitionResponse = {
   id: string
-  senderTwitterUsername: string
+  senderPrimaryWallet: string
   symbol: string
   currentDefinition: string
   pastDefinitions: Array<{ definition: string; dateCreated: Date }> | null
@@ -20,7 +20,7 @@ export type SymbolDefinitionQueryOptions = {
   limit: number
   orderBy: keyof SymbolDefinitionResponse
   orderDirection: string
-  senderTwitterUsername: string | null
+  senderPrimaryWallet: string | null
   symbol: string | null
   symbolDefinition: string | null
 }

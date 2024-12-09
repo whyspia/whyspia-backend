@@ -16,7 +16,7 @@ export async function createSymbolDefinition(req: Request, res: Response) {
     const decodedAccount = (req as any).decodedAccount as DECODED_ACCOUNT
     const reqBody = req.body
     const requestData = {
-      senderTwitterUsername: decodedAccount.twitterUsername,
+      senderPrimaryWallet: decodedAccount.primaryWallet,
       symbol: reqBody.symbol,
       symbolDefinition: reqBody.symbolDefinition,
     }
@@ -31,16 +31,16 @@ export async function createSymbolDefinition(req: Request, res: Response) {
 export async function fetchSymbolDefinition(req: Request, res: Response) {
   try {
     const decodedAccount = (req as any).decodedAccount as DECODED_ACCOUNT
-    const twitterUsername = req.query.twitterUsername
-      ? (req.query.twitterUsername as string)
+    const primaryWallet = req.query.primaryWallet
+      ? (req.query.primaryWallet as string)
       : null
-    const senderTwitterUsername = twitterUsername
-      ? (twitterUsername as string)
-      : (decodedAccount?.twitterUsername as string)
+    const senderPrimaryWallet = primaryWallet
+      ? (primaryWallet as string)
+      : (decodedAccount?.primaryWallet as string)
     const symbolDefinitionId = req.query.symbolDefinitionId as string
     const symbol = req.query.symbol as string
     const symbolDefinition = await fetchSymbolDefinitionFromDB({
-      senderTwitterUsername,
+      senderPrimaryWallet,
       symbolDefinitionId,
       symbol,
     })
@@ -59,7 +59,7 @@ export async function fetchAllSymbolDefinitions(req: Request, res: Response) {
     const orderDirection =
       (req.query.orderDirection as string | undefined) ?? 'desc'
     // const search = (req.query.search as string) || null
-    const senderTwitterUsername = (req.query.senderTwitterUsername as string) || null
+    const senderPrimaryWallet = (req.query.senderPrimaryWallet as string) || null
     const symbol = (req.query.symbol as string) || null
     const symbolDefinition = (req.query.symbolDefinition as string) || null
 
@@ -69,7 +69,7 @@ export async function fetchAllSymbolDefinitions(req: Request, res: Response) {
       orderBy,
       orderDirection,
       // search,
-      senderTwitterUsername,
+      senderPrimaryWallet,
       symbol,
       symbolDefinition
     }
@@ -89,7 +89,7 @@ export async function updateSymbolDefinition(req: Request, res: Response) {
     const symbolDefinitionId = req.body.symbolDefinitionId as string
     const updatedDefinition = req.body.updatedDefinition as string
     const updatedSymbolDefinition = await updateSymbolDefinitionInDB({
-      senderTwitterUsername: decodedAccount.twitterUsername,
+      senderPrimaryWallet: decodedAccount.primaryWallet,
       symbol,
       symbolDefinitionId,
       updatedDefinition

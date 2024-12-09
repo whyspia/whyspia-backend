@@ -2,7 +2,7 @@ import { Wallet } from "../models/user-v2.model"
 
 export type UserTokenRequest = {
   id: string
-  twitterUsername: string | null
+  primaryWallet: string | null
 }
 
 export type UserV2TokenPrivateResponse = {

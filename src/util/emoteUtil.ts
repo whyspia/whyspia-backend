@@ -1,8 +1,12 @@
+import { UserV2TokenPublicResponseWithDisplayName } from '../types/user-v2.types'
 import type { EmoteDocument } from '../models/emote.model'
 import type { EmoteResponse, EmoteResponseWithNoUChainPreviews } from '../types/emote.types'
+import { mapUserV2TokenPublicResponse } from './userV2Util'
 
 export function mapEmoteResponse(
-  emoteDoc: EmoteDocument | null
+  emoteDoc: EmoteDocument | null,
+  senderUser: UserV2TokenPublicResponseWithDisplayName | null,
+  receiverUsers: UserV2TokenPublicResponseWithDisplayName[] | null,
 ): EmoteResponse | null {
   if (!emoteDoc) {
     return null
@@ -10,8 +14,10 @@ export function mapEmoteResponse(
 
   return {
     id: emoteDoc?._id?.toString() || emoteDoc?.id,
-    senderTwitterUsername: emoteDoc.senderTwitterUsername,
+    senderPrimaryWallet: emoteDoc.senderPrimaryWallet,
+    senderUser: mapUserV2TokenPublicResponse(senderUser),
     receiverSymbols: emoteDoc.receiverSymbols,
+    receiverUsers: receiverUsers?.map((rUser: any) => mapUserV2TokenPublicResponse(rUser)) as any,
     sentSymbols: emoteDoc.sentSymbols,
     createdAt: (emoteDoc as any).createdAt,
     context: (emoteDoc as any).context,
@@ -19,7 +25,9 @@ export function mapEmoteResponse(
 }
 
 export function mapEmoteResponseWithNoUChainPreviews(
-  emoteDoc: EmoteDocument | null
+  emoteDoc: EmoteDocument | null,
+  senderUser: UserV2TokenPublicResponseWithDisplayName | null,
+  receiverUsers: UserV2TokenPublicResponseWithDisplayName[] | null,
 ): EmoteResponseWithNoUChainPreviews | null {
   if (!emoteDoc) {
     return null
@@ -27,8 +35,10 @@ export function mapEmoteResponseWithNoUChainPreviews(
 
   return {
     id: emoteDoc._id.toString(),
-    senderTwitterUsername: emoteDoc.senderTwitterUsername,
+    senderPrimaryWallet: emoteDoc.senderPrimaryWallet,
+    senderUser: mapUserV2TokenPublicResponse(senderUser),
     receiverSymbols: emoteDoc.receiverSymbols,
+    receiverUsers: receiverUsers?.map((rUser: any) => mapUserV2TokenPublicResponse(rUser)) as any,
     sentSymbols: emoteDoc.sentSymbols,
     createdAt: (emoteDoc as any).createdAt,
     context: (emoteDoc as any).context,

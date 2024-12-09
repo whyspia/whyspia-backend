@@ -167,20 +167,20 @@ export async function completeLoginDB({
 
 export async function fetchUserV2TokenPrivateFromDB({
   userTokenID,
-  // twitterUsername,
+  // primaryWallet,
 }: {
   userTokenID: string | null
-  // twitterUsername: string | null
+  // primaryWallet: string | null
 }) {
   let userTokenDoc: UserV2Document | null = null
 
   if (userTokenID) {
     userTokenDoc = await UserV2Model.findById(userTokenID)
   }
-  // else if (twitterUsername) {
+  // else if (primaryWallet) {
   //   userTokenDoc = await UserTokenModel.findOne({
-  //     twitterUsername: { $regex: new RegExp(new RegExp("^" + twitterUsername + "$", 'iu'), 'iu') },
-  //   }) // This regexp queries for twitterUsername and disregards case
+  //     primaryWallet: { $regex: new RegExp(new RegExp("^" + primaryWallet + "$", 'iu'), 'iu') },
+  //   }) // This regexp queries for primaryWallet and disregards case
   // }
 
   if (!userTokenDoc) {
@@ -257,6 +257,54 @@ export async function getUserTokenWithDisplayName(
     requestingPrimaryWallet,
     isRequestedUserSavedByRequestingUser: Boolean(savedPerson),
   }
+}
+
+// @docs - can be any list of records that contain 1 or more wallets that need their userTokens fetched
+// @return object where index is primaryWallet and value is userToken of that wallet
+export async function getMappingListOfWalletToUserToken(
+  docs: any[], // The list of documents to iterate over
+  fieldMapping: Record<string, string>, // Mapping of wallet field names to user document field names (the field itself can also be list of wallets...but no deeper nesting than that)
+  requestingPrimaryWallet: string // The requesting wallet
+): Promise<Record<string, any>> { // Return type is the populated map
+  const userWithDisplayNameMap: Record<string, any> = {}
+
+  for (const doc of docs) {
+    for (const [walletField, userField] of Object.entries(fieldMapping)) {
+      const wallets = doc[walletField] // Access the wallet field, which can be an array
+
+      // Check if the wallet field is an array
+      if (Array.isArray(wallets)) {
+        for (const wallet of wallets) {
+          // For each wallet, retrieve the corresponding user document
+          const userDoc = doc[userField] ? doc[userField].find((user: any) => user.primaryWallet === wallet) : null
+
+          // Check if the userWithDisplayNameMap already has this wallet
+          if (!userWithDisplayNameMap[wallet]) {
+            // If userDoc exists, use it; otherwise, fetch the user token
+            const userWithDisplayName = userDoc
+              ? await getUserTokenWithDisplayName(userDoc, requestingPrimaryWallet)
+              : await fetchUserV2TokenPublicFromDB({ primaryWallet: wallet, requestingPrimaryWallet })
+
+            userWithDisplayNameMap[wallet] = userWithDisplayName
+          }
+        }
+      } else {
+        // If it's not an array, treat it as a single wallet
+        const wallet = wallets // This should be a single wallet string
+        const userDoc = doc[userField] ? doc[userField][0] : null // Access the user document based on the user field name
+
+        if (!userWithDisplayNameMap[wallet]) {
+          const userWithDisplayName = userDoc
+            ? await getUserTokenWithDisplayName(userDoc, requestingPrimaryWallet)
+            : await fetchUserV2TokenPublicFromDB({ primaryWallet: wallet, requestingPrimaryWallet })
+
+          userWithDisplayNameMap[wallet] = userWithDisplayName
+        }
+      }
+    }
+  }
+
+  return userWithDisplayNameMap // Return the populated map
 }
 
 export async function fetchAllUserV2TokensFromDB(

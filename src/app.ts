@@ -103,7 +103,7 @@ const server = app.listen(port, () => {
 //       const userToken = await UserTokenModel.findById(userID)
 //       const requestData = {
 //         // NOTE: this could possibly be null is rare scenarios and causes issues - just remember
-//         senderTwitterUsername: userToken?.twitterUsername,
+//         senderPrimaryWallet: userToken?.primaryWallet,
 //         receiverSymbols: [EMOTE_CONTEXTS.PARALLEL],
 //         sentSymbols: ['im offline'],
 //       }

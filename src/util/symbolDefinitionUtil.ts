@@ -10,7 +10,7 @@ export function mapSymbolDefinitionResponse(
 
   return {
     id: symbolDefinitionDoc._id.toString(),
-    senderTwitterUsername: symbolDefinitionDoc.senderTwitterUsername,
+    senderPrimaryWallet: symbolDefinitionDoc.senderPrimaryWallet,
     symbol: symbolDefinitionDoc.symbol,
     currentDefinition: symbolDefinitionDoc.currentDefinition,
     pastDefinitions: symbolDefinitionDoc.pastDefinitions,
