@@ -27,7 +27,7 @@ const corsOptions: CorsOptions = {
       callback(new Error(`${origin} not allowed by CORS`))
     }
   },
-  credentials: CLIENT_HOST_DOMAIN.includes('localhost'),
+  credentials: CLIENT_HOST_DOMAIN.includes('localhost') || CLIENT_HOST_DOMAIN.includes('whyspia.com'),
 }
 
 // Middlewares
