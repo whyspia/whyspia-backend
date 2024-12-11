@@ -1,7 +1,4 @@
-import config from 'config'
 import type { FilterQuery } from 'mongoose'
-import request from 'request'
-import util from 'util'
 import { ethers } from 'ethers'
 
 import { generateAuthToken } from '../util/jwtTokenUtil'
@@ -13,10 +10,6 @@ import { UserV2LoginCompletion, UserV2TokenPrivateResponse, UserV2TokenPublicRes
 import { formatWalletAddress, mapUserV2TokenPrivateResponse, mapUserV2TokenPublicResponse } from '../util/userV2Util'
 import { SavedPersonModel } from '../models/saved-person.model'
 
-const requestPromise = util.promisify(request)
-
-const clientHostUrl = config.get<string>('client.hostUrl')
-const backendHostUrl = config.get<string>('server.hostUrl')
 
 function generateNonce(whyspiaUserID: string): string {
   const randomBytes = crypto.randomBytes(16).toString('hex')
@@ -55,9 +48,9 @@ export async function initiateLoginDB({ particleUUID, wallets, primaryWallet }: 
   await NonceModel.create(nonceDoc)
 
   // create signature message for wallet/user to sign on frontend and send back here to completeLogin
-  const messageToSign = `ONE MORE POPUP TO LOGIN...wE pRoMiSe.\n~~~~~~~~~~~details below are necessary, but you dont have to read them~~~~~~~~~~~~\nPlease sign this message to authenticate with whyspia.\nNonce: ${nonce}\nWallet: ${primaryWallet}`
+  const messageToSign = `you dont have to read any of this, it is just here for technical reasons.\n\nPlease sign this message to authenticate with whyspia.\n\nNonce: ${nonce}\n\nwhyspiaID: ${primaryWallet}`
 
-  return messageToSign
+  return messageToSign 
 }
 
 async function verifySignatureAndTimestamp(
@@ -131,7 +124,7 @@ export async function completeLoginDB({
   const storedNonce = storedNonceDoc?.nonce
 
   // recreate signature message that wallet/user signed on frontend and sent back here to completeLogin
-  const message = `ONE MORE POPUP TO LOGIN...wE pRoMiSe.\n~~~~~~~~~~~details below are necessary, but you dont have to read them~~~~~~~~~~~~\nPlease sign this message to authenticate with whyspia.\nNonce: ${storedNonce}\nWallet: ${signingAddress}`
+  const message = `you dont have to read any of this, it is just here for technical reasons.\n\nPlease sign this message to authenticate with whyspia.\n\nNonce: ${storedNonce}\n\nwhyspiaID: ${signingAddress}`
 
   const isValid = await verifySignatureAndTimestamp(message, signature, signingAddress)
 
