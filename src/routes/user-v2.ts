@@ -10,7 +10,7 @@ import {
 } from '../validations/user-token.validation'
 import { completeLogin, fetchAllUserV2Tokens, fetchUserV2TokenPrivate, fetchUserV2TokenPublic, initiateLogin, updateUserToken } from '../controllers/user-v2.controller'
 
-export const userV2TokenRouter = express.Router()
+export const userV2TokenRouter = express.Router() as any
 
 userV2TokenRouter.post(
   '/initiateLogin',

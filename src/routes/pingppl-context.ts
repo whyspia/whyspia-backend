@@ -22,7 +22,7 @@ import { createDefinedEventAndThenSentEventValidation, createSentEventValidation
 import { createPingpplFollowValidation, deletePingpplFollowValidation, fetchAllPingpplFollowsValidation } from '../validations/pingppl-follow.validation'
 import { createPingpplFollow, deletePingpplFollow, fetchAllPingpplFollows } from '../controllers/pingppl-follow.controller'
 
-export const pingpplContextRouter = express.Router()
+export const pingpplContextRouter = express.Router() as any
 
 pingpplContextRouter.post(
   '/definedEvent',

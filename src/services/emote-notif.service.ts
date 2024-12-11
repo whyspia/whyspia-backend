@@ -99,7 +99,7 @@ export async function fetchAllEmoteNotifsFromDB(
     // loop through emoteNotifs and add a new field for each item
     // typically context will be calculated with the notifData...but here notifData is calced in DB query...so cant really do dat
     const emoteNotifsWithContext = await Promise.all(emoteNotifDocs?.documents?.map(async (emoteNotif: any) => {
-      const emoteResponse = emoteNotif.notifType === NOTIF_TYPE.EMOTE ? mapEmoteResponse(emoteNotif.initialNotifData) : null
+      const emoteResponse = emoteNotif.notifType === NOTIF_TYPE.EMOTE ? mapEmoteResponse(emoteNotif.initialNotifData, emoteNotif.initialNotifData?.senderUser, emoteNotif.initialNotifData?.receiverUsers) : null
       const context = await getContextOfNotif(emoteResponse, emoteNotif.notifType)
       let notifData = emoteNotif.initialNotifData
       return { ...emoteNotif, notifData: { ...notifData, context }, context }
@@ -305,7 +305,7 @@ export async function fetchAndUpdateAllEmoteNotifsInDB(
     // loop through emoteNotifs and add a new field for each item
     // typically context will be calculated with the notifData...but here notifData is calced in DB query...so cant really do dat
     const emoteNotifsWithContext = await Promise.all(emoteNotifDocs?.documents?.map(async (emoteNotif: any) => {
-      const emoteResponse = emoteNotif.notifType === NOTIF_TYPE.EMOTE ? mapEmoteResponse(emoteNotif.initialNotifData) : null
+      const emoteResponse = emoteNotif.notifType === NOTIF_TYPE.EMOTE ? mapEmoteResponse(emoteNotif.initialNotifData, emoteNotif.initialNotifData?.senderUser, emoteNotif.initialNotifData?.receiverUsers) : null
       const context = await getContextOfNotif(emoteResponse, emoteNotif.notifType)
       let notifData = emoteNotif.initialNotifData
       return { ...emoteNotif, notifData: { ...notifData }, context }

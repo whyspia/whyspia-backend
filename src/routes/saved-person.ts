@@ -4,7 +4,7 @@ import { validateRequest } from '../middleware/validateRequest'
 import { createSavedPersonValidation, deleteSavedPersonValidation, updateSavedPersonValidation } from '../validations/saved-person.validation'
 import { authenticateAndSetAccount } from '../middleware'
 
-export const savedPersonRouter = express.Router()
+export const savedPersonRouter = express.Router() as any
 
 savedPersonRouter.post(
   '/',

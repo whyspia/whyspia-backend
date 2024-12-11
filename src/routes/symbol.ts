@@ -3,21 +3,14 @@ import express from 'express'
 import {
   createSymbol,
   fetchAllSymbols,
-  // fetchsymbol,
-  // updatesymbol,
-  // deletesymbol,
 } from '../controllers/symbol.controller'
-import { optionalAuthenticateAndSetAccount } from '../middleware/authentication'
 import { validateRequest } from '../middleware/validateRequest'
 import {
   createSymbolValidation,
   fetchAllSymbolsValidation,
-  // fetchsymbolValidation,
-  // updatesymbolValidation,
-  // deletesymbolValidation,
 } from '../validations/symbol.validation'
 
-export const symbolRouter = express.Router()
+export const symbolRouter = express.Router() as any
 
 symbolRouter.post(
   '/',

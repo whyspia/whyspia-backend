@@ -82,7 +82,7 @@ export async function authenticateAndSetAccount(
   req: Request,
   res: Response,
   next: NextFunction
-) {
+): Promise<any> {
   const authorizationHeader = req.headers.authorization as string
   if (!authorizationHeader) {
     console.error(AUTHORIZATION_HEADER_MISSING_ERR_LOG)
@@ -119,7 +119,7 @@ export async function optionalAuthenticateAndSetAccount(
   req: Request,
   res: Response,
   next: NextFunction
-) {
+): Promise<any> {
   const authorizationHeader = req.headers.authorization as string
   if (!authorizationHeader) {
     console.info(AUTHORIZATION_HEADER_MISSING_MSG)

@@ -5,7 +5,7 @@ import { cacheThisRoute } from '../middleware/cache'
 import { validateRequest } from '../middleware/validateRequest'
 import { fetchValidUrlValidation } from '../validations/general.validation'
 
-const generalRouter = express.Router()
+const generalRouter = express.Router() as any
 
 generalRouter.get(
   '/valid-url',

@@ -17,7 +17,7 @@ import {
   deleteSymbolDefinitionValidation,
 } from '../validations/symbol-definition.validation'
 
-export const symbolDefinitionRouter = express.Router()
+export const symbolDefinitionRouter = express.Router() as any
 
 symbolDefinitionRouter.post(
   '/',

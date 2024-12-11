@@ -23,7 +23,7 @@ import {
   fetchEmoteReplyChainValidation,
 } from '../validations/emote.validation'
 
-export const emoteRouter = express.Router()
+export const emoteRouter = express.Router() as any
 
 emoteRouter.post(
   '/',

@@ -67,7 +67,7 @@ export async function createEmoteInDB(
     // get userTokens for each wallet (also handles calculatedDisplayName of each user relative to requestingPrimaryWallet)
     const fieldMapping = {
       senderPrimaryWallet: 'senderUser',
-      receiverPrimaryWallet: 'receiverUser'
+      receiverSymbols: 'receiverUsers'
     }
     const userWithDisplayNameMap = await getMappingListOfWalletToUserToken([createdEmote], fieldMapping, requestingPrimaryWallet as string)
 

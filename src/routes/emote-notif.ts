@@ -12,7 +12,7 @@ import {
   updateEmoteNotifsValidation,
 } from '../validations/emote-notif.validation'
 
-export const emoteNotifRouter = express.Router()
+export const emoteNotifRouter = express.Router() as any
 
 emoteNotifRouter.get(
   '/',

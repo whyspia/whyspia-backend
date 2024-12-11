@@ -9,7 +9,7 @@ export function validateRequest(
   req: Request,
   res: Response,
   next: NextFunction
-) {
+): any {
   const errors = validationResult(req)
   if (errors.isEmpty()) {
     // no validation errors found, continuing

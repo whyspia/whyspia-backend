@@ -16,7 +16,7 @@ export function mapEmoteNotifResponse(
   // }
 
   let notifData = null
-  if (emoteNotifDoc.notifType === NOTIF_TYPE.EMOTE) notifData = mapEmoteResponse((emoteNotifDoc as any).notifData)
+  if (emoteNotifDoc.notifType === NOTIF_TYPE.EMOTE) notifData = mapEmoteResponse((emoteNotifDoc as any).notifData, (emoteNotifDoc as any).notifData?.senderUser, (emoteNotifDoc as any).notifData?.receiverUsers)
   if (emoteNotifDoc.notifType === NOTIF_TYPE.PINGPPL_FOLLOW) notifData = mapPingpplFollowResponse((emoteNotifDoc as any).notifData, (emoteNotifDoc as any).notifData?.eventSenderUser, (emoteNotifDoc as any).notifData?.followSenderUser)
   if (emoteNotifDoc.notifType === NOTIF_TYPE.PINGPPL_SENTEVENT) notifData = mapSentEventResponse((emoteNotifDoc as any).notifData, (emoteNotifDoc as any).notifData?.eventSenderUser)
   if (emoteNotifDoc.notifType === NOTIF_TYPE.TAU_SENT) notifData = mapTAUResponse((emoteNotifDoc as any).notifData, (emoteNotifDoc as any).notifData?.senderUser, (emoteNotifDoc as any).notifData?.receiverUser)

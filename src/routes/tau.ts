@@ -15,7 +15,7 @@ import {
   deleteTAUValidation,
 } from '../validations/tau.validation'
 
-export const tauRouter = express.Router()
+export const tauRouter = express.Router() as any
 
 tauRouter.post(
   '/',
