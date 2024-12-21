@@ -1,7 +1,7 @@
 import { mapUserV2TokenPublicResponse } from './userV2Util'
 import { SavedPersonResponse } from '../types/saved-person.types'
 import { SavedPersonDocument } from '../models/saved-person.model'
-import { UserV2TokenPublicResponseWithDisplayName } from 'types/user-v2.types'
+import { UserV2TokenPublicResponseWithDisplayName } from '../types/user-v2.types'
 
 export function mapSavedPersonResponse(
   savedPersonDoc: SavedPersonDocument | null,

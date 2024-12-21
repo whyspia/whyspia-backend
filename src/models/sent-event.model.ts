@@ -19,7 +19,7 @@ interface SentEventDocument extends mongoose.Document {
 const SentEventSchema = new mongoose.Schema(
   {
     eventName: { type: String, required: true },
-    eventSender: { type: String, ref: 'UserToken', required: true },
+    eventSender: { type: String, ref: 'UserV2', required: true },
     definedEventID: { type: String, ref: 'DefinedEvent', required: true },
   },
   {

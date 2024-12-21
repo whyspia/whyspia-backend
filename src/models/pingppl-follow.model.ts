@@ -19,8 +19,8 @@ interface PingpplFollowDocument extends mongoose.Document {
 const PingpplFollowSchema = new mongoose.Schema(
   {
     eventNameFollowed: { type: String, required: true },
-    eventSender: { type: String, ref: 'UserToken', required: true },
-    followSender: { type: String, ref: 'UserToken', required: true },
+    eventSender: { type: String, ref: 'UserV2', required: true },
+    followSender: { type: String, ref: 'UserV2', required: true },
   },
   {
     timestamps: true,
