@@ -27,8 +27,8 @@ export const validateUpdates = (updates: any[]) => {
         break
 
       case CurrentlyUpdateTypes.NEW_TAG:
-        if (!update.newValue || typeof update.newValue.text !== 'string' || typeof update.newValue.duration !== 'number') {
-          throw new Error('newValue must contain text and duration for NEW_TAG')
+        if (!update.newValue || typeof update.newValue.tag !== 'string' || typeof update.newValue.duration !== 'number') {
+          throw new Error('newValue must contain tag and duration for NEW_TAG')
         }
         break
 

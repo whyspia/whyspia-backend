@@ -6,11 +6,29 @@ import { InternalServerError } from './errors'
 import { UserV2Model } from '../models/user-v2.model'
 import { getMappingListOfWalletToUserToken, getUserTokenWithDisplayName } from './user-v2.service'
 import { mapCurrentlyResponse } from '../util/currentlyUtil'
+import { createPlaceInDB, fetchPlaceFromDB, updatePlaceInDB } from './place.service'
 
 
 export async function createCurrentlyInDB(currentlyData: Partial<CurrentlyRequest>): Promise<CurrentlyResponse | null> {
   try {
-    // TODO: do place DB stuff
+    // do place DB stuff if currently has place data
+    if (currentlyData.place) {
+      // check if place exists already
+      let place = await fetchPlaceFromDB({
+        placeName: currentlyData.place.text,
+      })
+
+      if (!place) {
+        // create new place if it doesn't exist
+        place = await createPlaceInDB({
+          placeName: currentlyData.place.text,
+          visitCount: 1
+        })
+      } else {
+        // update visit count if place exists
+        await updatePlaceInDB(place.id)
+      }
+    }
 
     const currentlyBuildData = {
       senderPrimaryWallet: currentlyData.senderPrimaryWallet as string,
@@ -63,8 +81,9 @@ export async function fetchCurrentlyFromDB({
 
 export async function fetchAllCurrentlyFromDB(options: CurrentlyQueryOptions): Promise<CurrentlyResponse[]> {
   try {
-    const { skip, limit, orderBy, search, senderPrimaryWallet, requestingPrimaryWallet } = options
+    const { skip, limit, orderBy, search, senderPrimaryWallet, requestingPrimaryWallet, anyActiveField, placeName, anyActivePlace } = options
     const orderDirection = options.orderDirection === 'asc' ? 1 : -1
+    const currentTime = new Date()
 
     // Sorting Options
     const sortOptions: any = {}
@@ -91,6 +110,72 @@ export async function fetchAllCurrentlyFromDB(options: CurrentlyQueryOptions): P
       })
     }
 
+    // filter for currently records that have at least 1 active field (place, tag, or status) based on duration
+    // be careful: if you just want records active for PLACE, dont use this bc this will return records if PLACE, TAGS, or STATUS are active (even if PLACE is not active)
+    if (anyActiveField) {
+      filterOptions.push({
+        $or: [
+          {
+            $expr: {
+              $lt: [
+                currentTime,
+                { $add: ['$place.updatedDurationAt', '$place.duration'] }
+              ]
+            }
+          },
+          // this gets records with ANY active tags. Filter below that is stage and not part of filterOptions is what removes tags from SOLO records that are NOT ACTIVE
+          {
+            $expr: {
+              $gt: [
+                { $size: { 
+                  $filter: { 
+                    input: "$wantOthersToKnowTags", 
+                    as: "item", 
+                    cond: { 
+                      $lt: [
+                        currentTime,
+                        { $add: ['$$item.updatedDurationAt', '$$item.duration'] }
+                      ] 
+                    } 
+                  } 
+                }},
+                0
+              ]
+            }
+          },
+          {
+            $expr: {
+              $lt: [
+                currentTime,
+                { $add: ['$status.updatedDurationAt', '$status.duration'] },
+              ]
+            }
+          },
+        ],
+      })
+
+    }
+
+    // fetch all currently records at a specific place. if you only want the active ones, then also use anyActivePlace
+    if (placeName) {
+      filterOptions.push({
+        'place.text': { $regex: new RegExp("^" + placeName + "$", 'iu') }
+      })
+    }
+
+    // fetch all currently records that have an active place rn (dont use this with anyActiveField or wont work)
+    if (anyActivePlace) {
+      filterOptions.push({ 
+        place: { $exists: true, $ne: null },
+        $expr: {
+          $lt: [
+            currentTime,
+            { $add: ['$place.updatedDurationAt', '$place.duration'] }
+          ]
+        }
+      })
+    }
+
     // Filter Query
     let filterQuery = {}
     if (filterOptions.length > 0) {
@@ -98,7 +183,42 @@ export async function fetchAllCurrentlyFromDB(options: CurrentlyQueryOptions): P
     }
 
     const currentlyDocs = await CurrentlyModel.aggregate([
+      {
+        $sort: {
+          updatedAt: -1 // Assuming 'updatedAt' is the field that indicates the most recent record
+        }
+      },
+      // if anyActivePlace or anyActiveField is true, we need to only fetch one record per senderPrimaryWallet AND it should be the most recent one only
+      // the sort above is required for dis to work
+      ...(anyActiveField || anyActivePlace ? [
+        {
+          $group: {
+            _id: "$senderPrimaryWallet",
+            mostRecentRecord: { $first: "$$ROOT" } // Get the most recent record
+          }
+        },
+        {
+          $replaceRoot: { newRoot: "$mostRecentRecord" } // Replace the root with the most recent record
+        }
+      ] : []),
       { $match: filterQuery },
+          // above filterOptions OR gets records with ANY active tags. This filter here is stage and not part of filterOptions is what removes tags from SOLO records that are NOT ACTIVE
+      ...(anyActiveField ? [{
+        $addFields: {
+          wantOthersToKnowTags: {
+            $filter: {
+              input: "$wantOthersToKnowTags",
+              as: "item",
+              cond: {
+                $lt: [
+                  currentTime,
+                  { $add: ['$$item.updatedDurationAt', '$$item.duration'] }
+                ]
+              }
+            }
+          }
+        }
+      }] : []),
       { $lookup: {
           from: 'userv2', // The name of the UserV2 collection
           localField: 'senderPrimaryWallet', // Field from Currently
@@ -171,7 +291,7 @@ export async function updateCurrentlyInDB(
           break
 
         case CurrentlyUpdateTypes.NEW_TAG:
-          filteredCurrently.wantOthersToKnowTags.push({ tag: update.newValue.text, duration: update.newValue.duration, updatedDurationAt: new Date() })
+          filteredCurrently.wantOthersToKnowTags.push({ tag: update.newValue.tag, duration: update.newValue.duration, updatedDurationAt: new Date() })
           break
 
         case CurrentlyUpdateTypes.EDIT_TAG_TEXT:
@@ -243,3 +363,35 @@ export async function deleteCurrentlyInDB(currentlyID: string): Promise<void> {
     throw new InternalServerError('failed to delete DefinedEvent from DB')
   }
 }
+
+// bet these will be used eventually
+// export const fetchAllActiveCurrently = async (): Promise<CurrentlyResponse[]> => {
+//     return fetchAllCurrentlyFromDB({
+//         skip: 0,
+//         limit: 1000,
+//         anyActiveField: true,
+//         orderBy: 'createdAt',
+//         orderDirection: 'desc'
+//     })
+// }
+
+// export const fetchAllActivelyAtAnyPlace = async (): Promise<CurrentlyResponse[]> => {
+//     return fetchAllCurrentlyFromDB({
+//         skip: 0,
+//         limit: 1000,
+//         anyActivePlace: true,
+//         orderBy: 'createdAt',
+//         orderDirection: 'desc'
+//     })
+// }
+
+// export const fetchAllActiveAtSpecificPlace = async (placeName: string): Promise<CurrentlyResponse[]> => {
+//     return fetchAllCurrentlyFromDB({
+//         skip: 0,
+//         limit: 1000,
+//         anyActivePlace: true,
+//         placeName,
+//         orderBy: 'createdAt',
+//         orderDirection: 'desc'
+//     })
+// }

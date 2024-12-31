@@ -43,6 +43,9 @@ export interface CurrentlyQueryOptions {
   search: string | null
   senderPrimaryWallet: string | null
   requestingPrimaryWallet: string
+  anyActiveField?: boolean
+  placeName?: string
+  anyActivePlace?: boolean
 }
 
 export type CurrentlyUpdate = {

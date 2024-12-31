@@ -32,7 +32,7 @@ export async function createCurrently(req: Request, res: Response) {
           break
 
         case CurrentlyUpdateTypes.NEW_TAG:
-          newCurrentlyRecord.wantOthersToKnowTags.push({ tag: update.newValue.text, duration: update.newValue.duration, updatedDurationAt: new Date() })
+          newCurrentlyRecord.wantOthersToKnowTags.push({ tag: update.newValue.tag, duration: update.newValue.duration, updatedDurationAt: new Date() })
           break
 
         case CurrentlyUpdateTypes.NEW_STATUS:
@@ -80,6 +80,10 @@ export async function fetchAllCurrently(req: Request, res: Response) {
       (req.query.orderDirection as string | undefined) ?? 'desc'
     const senderPrimaryWallet = req.query.senderPrimaryWallet as string ?? null
     const search = (req.query.search as string) || null
+    const anyActiveField = req.query.anyActiveField === 'true'
+    const anyActivePlace = req.query.anyActivePlace === 'true'
+    const placeName = req.query.placeName as string
+
     const options: CurrentlyQueryOptions = {
       skip,
       limit,
@@ -88,6 +92,9 @@ export async function fetchAllCurrently(req: Request, res: Response) {
       search,
       senderPrimaryWallet,
       requestingPrimaryWallet,
+      anyActiveField,
+      anyActivePlace,
+      placeName,
     }
     const currentlyList = await fetchAllCurrentlyFromDB(options)
     return handleSuccess(res, { currentlyList })
@@ -97,7 +104,6 @@ export async function fetchAllCurrently(req: Request, res: Response) {
   }
 }
 
-// only reason this is needed rather than creating totally new db record is bc only certain fields need updating - only certain field timers need to be reset - not every single field's timers
 export async function updateCurrently(req: Request, res: Response) {
   try {
     const decodedAccount = (req as any).decodedAccount as DECODED_ACCOUNT
