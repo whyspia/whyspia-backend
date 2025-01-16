@@ -9,6 +9,7 @@ import { NOTIF_TYPE } from '../models/emote-notif.model'
 import { UserV2Model } from '../models/user-v2.model'
 import { fetchUserV2TokenPublicFromDB, getUserTokenWithDisplayName } from './user-v2.service'
 import { notifyFollowersOfEvent } from './pingppl-follow.service'
+import { getMappingListOfWalletToUserToken } from './user-v2.service'
 
 export async function createSentEventInDB(sentEventData: Partial<SentEventRequest>): Promise<SentEventResponse | null> {
   try {
@@ -142,25 +143,12 @@ export async function fetchAllSentEventsFromDB(
       { $limit: limit }
     ])
     
-    // for each eventSender, return their userToken. if there is a requestingUser, fetch eventSender userToken with names relative to requestingUser
-    const userWithDisplayNameMap = {} as any
-    for (const sentEventDoc of sentEventDocs) {
-      // check if the userWithDisplayNameMap already has this eventSender
-      if (userWithDisplayNameMap[sentEventDoc.eventSender]) {
-        continue // skip to the next iteration if it exists
-      }
-
-      const eventSenderDoc = sentEventDoc.eventSenderUser[0]
-
-      // if user not in DB, use fetchUserV2TokenPublicFromDB to get fake user response (bc even tho no user, there was wallet given in interaction)
-      const eventSenderWithDisplayName = eventSenderDoc
-        ? await getUserTokenWithDisplayName(eventSenderDoc, requestingPrimaryWallet)
-        : await fetchUserV2TokenPublicFromDB({ primaryWallet: eventSenderDoc?.eventSender, requestingPrimaryWallet })
-
-      userWithDisplayNameMap[sentEventDoc.eventSender] = eventSenderWithDisplayName
+    // Replace the manual loop with the utility function
+    const fieldMapping = {
+      eventSender: 'eventSenderUser'
     }
+    const userWithDisplayNameMap = await getMappingListOfWalletToUserToken(sentEventDocs, fieldMapping, requestingPrimaryWallet as string)
 
-    // return sentEventDocs?.map((doc: SentEventDocument) => mapSentEventResponse(doc) as SentEventResponse)
     return sentEventDocs.map(doc => {
       const eventSenderUser = userWithDisplayNameMap[doc.eventSender]
       return mapSentEventResponse(doc, eventSenderUser) as SentEventResponse

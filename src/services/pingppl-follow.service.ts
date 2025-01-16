@@ -8,7 +8,7 @@ import { mapPingpplFollowResponse } from '../util/pingpplFollowUtil'
 import { createEmoteNotifInDB } from './emote-notif.service'
 import { NOTIF_TYPE } from '../models/emote-notif.model'
 import { UserV2Model } from '../models/user-v2.model'
-import { fetchUserV2TokenPublicFromDB, getUserTokenWithDisplayName } from './user-v2.service'
+import { fetchUserV2TokenPublicFromDB, getUserTokenWithDisplayName, getMappingListOfWalletToUserToken } from './user-v2.service'
 
 export async function createPingpplFollowInDB(pingpplFollowData: Partial<PingpplFollowRequest>): Promise<PingpplFollowResponse | null> {
   try {
@@ -108,36 +108,13 @@ export async function fetchAllPingpplFollowsFromDB(
       { $limit: limit }
     ])
 
-    // for each eventSender AND followSender, return their userToken. if there is a requestingUser, fetch both userTokena with names relative to requestingUser
-    const userWithDisplayNameMap = {} as any
-    for (const pingpplFollowDoc of pingpplFollowDocs) {
-      // check if the userWithDisplayNameMap already has this eventSender
-      if (!userWithDisplayNameMap[pingpplFollowDoc.eventSender]) {
-        const eventSenderDoc = pingpplFollowDoc.eventSenderUser[0]
-
-        // if user not in DB, use fetchUserV2TokenPublicFromDB to get fake user response (bc even tho no user, there was wallet given in interaction)
-        const eventSenderWithDisplayName = eventSenderDoc
-          ? await getUserTokenWithDisplayName(eventSenderDoc, requestingPrimaryWallet)
-          : await fetchUserV2TokenPublicFromDB({ primaryWallet: eventSenderDoc?.eventSender, requestingPrimaryWallet })
-  
-        userWithDisplayNameMap[pingpplFollowDoc.eventSender] = eventSenderWithDisplayName
-      }
-
-      // check if the userWithDisplayNameMap already has this followSender
-      if (!userWithDisplayNameMap[pingpplFollowDoc.followSender]) {
-        const followSenderDoc = pingpplFollowDoc.followSenderUser[0]
-
-        // if user not in DB, use fetchUserV2TokenPublicFromDB to get fake user response (bc even tho no user, there was wallet given in interaction)
-        const followSenderWithDisplayName = followSenderDoc
-          ? await getUserTokenWithDisplayName(followSenderDoc, requestingPrimaryWallet)
-          : await fetchUserV2TokenPublicFromDB({ primaryWallet: followSenderDoc?.followSender, requestingPrimaryWallet })
-  
-        userWithDisplayNameMap[pingpplFollowDoc.followSender] = followSenderWithDisplayName
-      }
-      
+    // Replace the manual loop with the utility function
+    const fieldMapping = {
+      eventSender: 'eventSenderUser',
+      followSender: 'followSenderUser'
     }
+    const userWithDisplayNameMap = await getMappingListOfWalletToUserToken(pingpplFollowDocs, fieldMapping, requestingPrimaryWallet as string)
 
-    // return pingpplFollowDocs.map((doc) => mapPingpplFollowResponse(doc) as PingpplFollowResponse)
     return pingpplFollowDocs.map(doc => {
       const eventSenderUser = userWithDisplayNameMap[doc.eventSender]
       const followSenderUser = userWithDisplayNameMap[doc.followSender]

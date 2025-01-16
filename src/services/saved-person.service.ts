@@ -111,6 +111,7 @@ export async function fetchAllSavedPersonFromDB(
     ])
 
     // if there is a requesting user (for now prob required for all SavedPerson endpoints tbh, but may not be in future), fetch their saved persons
+    // didnt use getMappingListOfWalletToUserToken here bc didnt wanna mess up the mocking user part
     const userWithDisplayNameMap = {} as any
     for (const savedPersonDoc of savedPersonDocs) {
       const primaryWalletSavedUserDoc = savedPersonDoc.primaryWalletSavedUser[0]

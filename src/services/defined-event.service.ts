@@ -6,7 +6,7 @@ import type { DefinedEventQueryOptions, DefinedEventRequest, DefinedEventRespons
 import { InternalServerError } from './errors'
 import { mapDefinedEventResponse, SAVED_SYMBOL_TYPES } from '../util/definedEventUtil'
 import { UserV2Model } from '../models/user-v2.model'
-import { fetchUserV2TokenPublicFromDB, getUserTokenWithDisplayName } from './user-v2.service'
+import { getMappingListOfWalletToUserToken, getUserTokenWithDisplayName } from './user-v2.service'
 
 export async function createDefinedEventInDB(definedEventData: Partial<DefinedEventRequest>): Promise<DefinedEventResponse | null> {
   try {
@@ -125,25 +125,11 @@ export async function fetchAllDefinedEventsFromDB(
       { $limit: limit }
     ])
 
-    // for each eventCreator, return their userToken. if there is a requestingUser, fetch eventCreator userToken with names relative to requestingUser
-    const userWithDisplayNameMap = {} as any
-    for (const definedEventDoc of definedEventDocs) {
-      // check if the userWithDisplayNameMap already has this eventCreator
-      if (userWithDisplayNameMap[definedEventDoc.eventCreator]) {
-        continue // skip to the next iteration if it exists
-      }
-
-      const eventCreatorDoc = definedEventDoc.eventCreatorUser[0]
-
-      // if user not in DB, use fetchUserV2TokenPublicFromDB to get fake user response (bc even tho no user, there was wallet given in interaction)
-      const eventCreatorWithDisplayName = eventCreatorDoc
-        ? await getUserTokenWithDisplayName(eventCreatorDoc, requestingPrimaryWallet)
-        : await fetchUserV2TokenPublicFromDB({ primaryWallet: eventCreatorDoc?.eventCreator, requestingPrimaryWallet })
-
-      userWithDisplayNameMap[definedEventDoc.eventCreator] = eventCreatorWithDisplayName
+    const fieldMapping = {
+      eventCreator: 'eventCreatorUser'
     }
+    const userWithDisplayNameMap = await getMappingListOfWalletToUserToken(definedEventDocs, fieldMapping, requestingPrimaryWallet as string)
 
-    // return definedEventDocs.map((doc) => mapDefinedEventResponse(doc) as DefinedEventResponse)
     return definedEventDocs.map(doc => {
       const eventCreatorUser = userWithDisplayNameMap[doc.eventCreator]
       return mapDefinedEventResponse(doc, eventCreatorUser) as DefinedEventResponse
