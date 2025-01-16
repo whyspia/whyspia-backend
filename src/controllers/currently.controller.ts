@@ -9,15 +9,18 @@ import {
 } from '../services/currently.service'
 import { CurrentlyRequest, CurrentlyUpdate, CurrentlyUpdateTypes, type CurrentlyQueryOptions, type CurrentlyResponse } from '../types/currently.types'
 import { DECODED_ACCOUNT } from '../util/jwtTokenUtil'
+import { createDefinedEventInDB } from '../services/defined-event.service'
+import { SAVED_SYMBOL_TYPES } from '../util/definedEventUtil'
 
 export async function createCurrently(req: Request, res: Response) {
   try {
     const decodedAccount = (req as any).decodedAccount as DECODED_ACCOUNT
+    const requestingPrimaryWallet = decodedAccount?.primaryWallet
     const reqBody = req.body
     const updates = reqBody.updates as CurrentlyUpdate[]
 
     const newCurrentlyRecord = {
-      senderPrimaryWallet: decodedAccount.primaryWallet,
+      senderPrimaryWallet: requestingPrimaryWallet,
       place: null,
       wantOthersToKnowTags: [],
       status: null,
@@ -28,6 +31,15 @@ export async function createCurrently(req: Request, res: Response) {
       switch (update.updateType) {
 
         case CurrentlyUpdateTypes.NEW_PLACE:
+          if (update.shouldSavePlaceOnShare) {
+            createDefinedEventInDB({
+              eventCreator: requestingPrimaryWallet,
+              eventName: update.newValue.text,
+              eventDescription: null,
+              savedSymbolTypes: [SAVED_SYMBOL_TYPES.CURRENTLY, SAVED_SYMBOL_TYPES.PLACE],
+            })
+          }
+
           newCurrentlyRecord.place = { text: update.newValue.text, duration: update.newValue.duration, updatedDurationAt: new Date() }
           break
 
@@ -83,6 +95,7 @@ export async function fetchAllCurrently(req: Request, res: Response) {
     const anyActiveField = req.query.anyActiveField === 'true'
     const anyActivePlace = req.query.anyActivePlace === 'true'
     const placeName = req.query.placeName as string
+    const filterBySavedPeopleOfRequestingUser = req.query.savedPeopleOfRequestingUser === 'true'
 
     const options: CurrentlyQueryOptions = {
       skip,
@@ -95,6 +108,7 @@ export async function fetchAllCurrently(req: Request, res: Response) {
       anyActiveField,
       anyActivePlace,
       placeName,
+      filterBySavedPeopleOfRequestingUser,
     }
     const currentlyList = await fetchAllCurrentlyFromDB(options)
     return handleSuccess(res, { currentlyList })

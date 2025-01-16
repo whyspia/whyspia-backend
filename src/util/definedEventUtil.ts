@@ -17,7 +17,14 @@ export function mapDefinedEventResponse(
     eventCreatorUser: mapUserV2TokenPublicResponse(eventCreatorUserDoc),
     eventName: definedEventDoc.eventName,
     eventDescription: definedEventDoc?.eventDescription || null,
+    savedSymbolTypes: definedEventDoc?.savedSymbolTypes || null,
     createdAt: (definedEventDoc as any).createdAt,
     updatedAt: (definedEventDoc as any).updatedAt,
   }
+}
+
+export enum SAVED_SYMBOL_TYPES {
+  CURRENTLY = 'currently',
+  PLACE = 'place',
+  TAG = 'tag',
 }

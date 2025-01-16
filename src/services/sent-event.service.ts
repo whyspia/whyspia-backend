@@ -5,12 +5,10 @@ import type { SentEventDocument } from '../models/sent-event.model'
 import type { SentEventQueryOptions, SentEventRequest, SentEventResponse } from '../types/sent-event.types'
 import { InternalServerError } from './errors'
 import { mapSentEventResponse } from '../util/sentEventUtil'
-import { PingpplFollowQueryOptions } from '../types/pingppl-follow.types'
-import { fetchAllPingpplFollowsFromDB } from './pingppl-follow.service'
-import { createEmoteNotifInDB } from './emote-notif.service'
 import { NOTIF_TYPE } from '../models/emote-notif.model'
 import { UserV2Model } from '../models/user-v2.model'
 import { fetchUserV2TokenPublicFromDB, getUserTokenWithDisplayName } from './user-v2.service'
+import { notifyFollowersOfEvent } from './pingppl-follow.service'
 
 export async function createSentEventInDB(sentEventData: Partial<SentEventRequest>): Promise<SentEventResponse | null> {
   try {
@@ -26,24 +24,14 @@ export async function createSentEventInDB(sentEventData: Partial<SentEventReques
     const eventSenderUserWithDisplayName = await getUserTokenWithDisplayName(eventSenderUserDoc, sentEventData.eventSender as string)
 
     // find all followSenders from follows table and make notif for each
-    const options: PingpplFollowQueryOptions = {
-      skip: 0,
-      limit: 40,  // TODO: can only have 40 followers to get notified due to this line of code here
-      orderBy: 'createdAt',
-      orderDirection: 'desc',
-      eventNameFollowed: sentEventData?.eventName as string,
-      eventSender: sentEventData.eventSender as string,
-      followSender: null,
-      requestingPrimaryWallet: sentEventData.eventSender as string,
-    }
-    const pingpplFollows = await fetchAllPingpplFollowsFromDB(options)
-
-    if (pingpplFollows && pingpplFollows?.length > 0) {
-      for (const follow of pingpplFollows) {
-        // TODO: i think we dont need to await these bc that would cause longer load times on frontend for users...i think not awaiting wont cause any issues
-        createEmoteNotifInDB({ notifType: NOTIF_TYPE.PINGPPL_SENTEVENT, notifDataID: createdSentEvent._id.toString(), receiverSymbol: follow.followSender, initialNotifData: mapSentEventResponse(createdSentEvent, eventSenderUserWithDisplayName) })
-      }
-    }
+    await notifyFollowersOfEvent(
+      sentEventData.eventName as string,
+      sentEventData.eventSender as string,
+      NOTIF_TYPE.PINGPPL_SENTEVENT,
+      createdSentEvent._id.toString(),
+      mapSentEventResponse(createdSentEvent, eventSenderUserWithDisplayName),
+      sentEventData.eventSender,
+    )
 
     return mapSentEventResponse(createdSentEvent, eventSenderUserWithDisplayName)
   } catch (error) {

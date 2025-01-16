@@ -26,5 +26,5 @@ export type PingpplFollowQueryOptions = {
   eventNameFollowed: string | null
   eventSender: string | null
   followSender: string | null
-  requestingPrimaryWallet: string
+  requestingPrimaryWallet: string | null
 }

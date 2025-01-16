@@ -1,3 +1,4 @@
+import { SAVED_SYMBOL_TYPES } from "../util/definedEventUtil"
 import { UserV2TokenPublicResponse } from "./user-v2.types"
 
 export type DefinedEventRequest = {
@@ -6,6 +7,7 @@ export type DefinedEventRequest = {
   eventName: string
   eventDescription: string | null
   timestamp: Date
+  savedSymbolTypes?: SAVED_SYMBOL_TYPES[]
 }
 
 export type DefinedEventResponse = {
@@ -14,6 +16,7 @@ export type DefinedEventResponse = {
   eventCreatorUser: UserV2TokenPublicResponse | null
   eventName: string
   eventDescription: string | null
+  savedSymbolTypes?: SAVED_SYMBOL_TYPES[]
   createdAt: Date
   updatedAt: Date
 }
@@ -23,8 +26,9 @@ export type DefinedEventQueryOptions = {
   limit: number
   orderBy: keyof DefinedEventResponse
   orderDirection: string
+  search: string | null
   eventCreator: string | null
   eventName: string | null
-  search: string | null
-  requestingPrimaryWallet: string
+  requestingPrimaryWallet: string | null
+  savedSymbolTypes?: string[]
 }

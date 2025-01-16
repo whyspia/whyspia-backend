@@ -4,7 +4,7 @@ import { DefinedEventModel } from '../models/defined-event.model'
 import type { DefinedEventDocument } from '../models/defined-event.model'
 import type { DefinedEventQueryOptions, DefinedEventRequest, DefinedEventResponse } from '../types/defined-event.types'
 import { InternalServerError } from './errors'
-import { mapDefinedEventResponse } from '../util/definedEventUtil'
+import { mapDefinedEventResponse, SAVED_SYMBOL_TYPES } from '../util/definedEventUtil'
 import { UserV2Model } from '../models/user-v2.model'
 import { fetchUserV2TokenPublicFromDB, getUserTokenWithDisplayName } from './user-v2.service'
 
@@ -14,6 +14,7 @@ export async function createDefinedEventInDB(definedEventData: Partial<DefinedEv
       eventCreator: definedEventData.eventCreator as string,
       eventName: definedEventData?.eventName as string,
       eventDescription: definedEventData?.eventDescription as string || null,
+      savedSymbolTypes: definedEventData?.savedSymbolTypes as SAVED_SYMBOL_TYPES[] || []
     }
     const definedEventDoc = DefinedEventModel.build(definedEventBuildData)
     const createdDefinedEvent = await DefinedEventModel.create(definedEventDoc)
@@ -67,8 +68,7 @@ export async function fetchAllDefinedEventsFromDB(
   options: DefinedEventQueryOptions
 ): Promise<DefinedEventResponse[]> {
   try {
-
-    const { skip, limit, orderBy, eventCreator, eventName, search, requestingPrimaryWallet  } = options
+    const { skip, limit, orderBy, eventCreator, eventName, search, requestingPrimaryWallet, savedSymbolTypes } = options
     const orderDirection = options.orderDirection === 'asc' ? 1 : -1
 
     // Sorting Options
@@ -81,16 +81,12 @@ export async function fetchAllDefinedEventsFromDB(
 
     if (eventCreator) {
       filterOptions.push({
-        $or: [
-          { eventCreator: { $regex: new RegExp("^" + eventCreator + "$", 'iu') } },
-        ],
+        eventCreator: { $regex: new RegExp("^" + eventCreator + "$", 'iu') }
       })
     }
     if (eventName) {
       filterOptions.push({
-        $or: [
-          { eventName: { $regex: new RegExp("^" + eventName + "$", 'iu') } },
-        ],
+        eventName: { $regex: new RegExp("^" + eventName + "$", 'iu') }
       })
     }
     if (search) {
@@ -99,6 +95,13 @@ export async function fetchAllDefinedEventsFromDB(
           { eventName: { $regex: new RegExp(search, 'iu') } },
           { eventDescription: { $regex: new RegExp(search, 'iu') } },
         ],
+      })
+    }
+    if (savedSymbolTypes && savedSymbolTypes.length > 0) {
+      filterOptions.push({
+        savedSymbolTypes: { 
+          $all: savedSymbolTypes
+        }
       })
     }
 

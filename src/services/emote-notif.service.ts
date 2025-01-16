@@ -5,12 +5,12 @@ import { EmoteNotifModel } from '../models/emote-notif.model'
 import type { EmoteNotifDocument } from '../models/emote-notif.model'
 import type { EmoteNotifQueryOptions, EmoteNotifRequest, EmoteNotifResponse, EmoteNotifSingleResponse } from '../types/emote-notif.types'
 import { InternalServerError } from './errors'
-import { mapEmoteNotifResponse } from '../util/emoteNotifUtil'
+import { mapEmoteNotifResponse, mapNotifData } from '../util/emoteNotifUtil'
 import { DECODED_ACCOUNT } from '../util/jwtTokenUtil'
 import { getContextOfEmote, getContextOfNotif } from './context.service'
 import { mapEmoteResponse } from '../util/emoteUtil'
 import { NOTIF_TYPE } from '../models/emote-notif.model'
-import { fetchUserV2TokenPublicFromDB, getUserTokenWithDisplayName } from './user-v2.service'
+import { getMappingListOfWalletToUserToken } from './user-v2.service'
 
 export async function createEmoteNotifInDB(emoteNotifData: Partial<EmoteNotifRequest>): Promise<EmoteNotifSingleResponse | null> {
   try {
@@ -101,27 +101,18 @@ export async function fetchAllEmoteNotifsFromDB(
     const emoteNotifsWithContext = await Promise.all(emoteNotifDocs?.documents?.map(async (emoteNotif: any) => {
       const emoteResponse = emoteNotif.notifType === NOTIF_TYPE.EMOTE ? mapEmoteResponse(emoteNotif.initialNotifData, emoteNotif.initialNotifData?.senderUser, emoteNotif.initialNotifData?.receiverUsers) : null
       const context = await getContextOfNotif(emoteResponse, emoteNotif.notifType)
-      let notifData = emoteNotif.initialNotifData
+      let notifData = await mapNotifData(emoteNotif.initialNotifData, emoteNotif.notifType, decodedAccount?.primaryWallet)
       return { ...emoteNotif, notifData: { ...notifData, context }, context }
     }))
 
-    // for each receiverSymbol, return their userToken. if there is a requestingUser, fetch receiverSymbol userToken with names relative to requestingUser
-    const userWithDisplayNameMap = {} as any
-    for (const emoteNotifWithContext of emoteNotifsWithContext) {
-      // check if the userWithDisplayNameMap already has this receiverSymbol
-      if (userWithDisplayNameMap[emoteNotifWithContext.receiverSymbol]) {
-        continue // skip to the next iteration if it exists
-      }
-
-      const receiverSymbolDoc = emoteNotifWithContext.receiverSymbolUser[0]
-
-      // if user not in DB, use fetchUserV2TokenPublicFromDB to get fake user response (bc even tho no user, there was wallet given in interaction)
-      const receiverSymbolWithDisplayName = receiverSymbolDoc
-        ? await getUserTokenWithDisplayName(receiverSymbolDoc, decodedAccount?.primaryWallet)
-        : await fetchUserV2TokenPublicFromDB({ primaryWallet: receiverSymbolDoc?.receiverSymbol, requestingPrimaryWallet: decodedAccount?.primaryWallet })
-
-      userWithDisplayNameMap[emoteNotifWithContext.receiverSymbol] = receiverSymbolWithDisplayName
+    const fieldMapping = {
+      receiverSymbol: 'receiverSymbolUser'
     }
+    const userWithDisplayNameMap = await getMappingListOfWalletToUserToken(
+      emoteNotifsWithContext, 
+      fieldMapping,
+      decodedAccount?.primaryWallet
+    )
 
     // const emoteNotifs = emoteNotifsWithContext.map((doc: EmoteNotifDocument) => mapEmoteNotifResponse(doc) as EmoteNotifSingleResponse)
     const emoteNotifs = emoteNotifsWithContext.map(doc => {
@@ -311,23 +302,14 @@ export async function fetchAndUpdateAllEmoteNotifsInDB(
       return { ...emoteNotif, notifData: { ...notifData }, context }
     }))
 
-    // for each receiverSymbol, return their userToken. if there is a requestingUser, fetch receiverSymbol userToken with names relative to requestingUser
-    const userWithDisplayNameMap = {} as any
-    for (const emoteNotifWithContext of emoteNotifsWithContext) {
-      // check if the userWithDisplayNameMap already has this receiverSymbol
-      if (userWithDisplayNameMap[emoteNotifWithContext.receiverSymbol]) {
-        continue // skip to the next iteration if it exists
-      }
-
-      const receiverSymbolDoc = emoteNotifWithContext.receiverSymbolUser[0]
-
-      // if user not in DB, use fetchUserV2TokenPublicFromDB to get fake user response (bc even tho no user, there was wallet given in interaction)
-      const receiverSymbolWithDisplayName = receiverSymbolDoc
-        ? await getUserTokenWithDisplayName(receiverSymbolDoc, decodedAccount?.primaryWallet)
-        : await fetchUserV2TokenPublicFromDB({ primaryWallet: receiverSymbolDoc?.receiverSymbol, requestingPrimaryWallet: decodedAccount?.primaryWallet })
-
-      userWithDisplayNameMap[emoteNotifWithContext.receiverSymbol] = receiverSymbolWithDisplayName
+    const fieldMapping = {
+      receiverSymbol: 'receiverSymbolUser'
     }
+    const userWithDisplayNameMap = await getMappingListOfWalletToUserToken(
+      emoteNotifsWithContext, 
+      fieldMapping,
+      decodedAccount?.primaryWallet
+    )
 
     // const emoteNotifs = emoteNotifsWithContext?.map((doc: EmoteNotifDocument) => mapEmoteNotifResponse(doc) as EmoteNotifSingleResponse)
     const emoteNotifs = emoteNotifsWithContext.map(doc => {

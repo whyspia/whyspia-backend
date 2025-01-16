@@ -18,7 +18,10 @@
     "check-format": "yarn prettier -- --list-different",
     "validate": "npm-run-all --parallel check-types check-format lint",
     "install:clean": "rm -rf node_modules && rm yarn.lock && yarn",
-    "prepare": "husky install"
+    "prepare": "husky install",
+
+    "create-mock-currentlies-all-users": "ts-node src/mockData/createMockCurrentlies.ts",
+    "create-mock-currentlies-input": "ts-node src/mockData/createMockCurrentlies.ts 0xbd419AbD820c905658f03047A3741663f9704053 0xeC2BED4093b77fD08E0fF93E2823ddA988223C5d 0x9b10700462625 0x60078c7374d83 0x72f8fd71c6d87"
   },
   "dependencies": {
     "@sendgrid/mail": "7.6.0",

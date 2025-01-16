@@ -160,3 +160,57 @@ export async function deletePingpplFollowInDB(pingpplFollowId: string, followSen
     throw new InternalServerError('Failed to delete PingpplFollow from DB')
   }
 }
+
+export async function notifyFollowersOfEvent(
+  eventNameFollowed: string,
+  eventSender: string,
+  notifType: NOTIF_TYPE,
+  notifDataID: string,
+  initialNotifData: any,
+  requestingPrimaryWallet?: string | null,
+  batchSize = 100
+): Promise<void> {
+  try {
+    let skip = 0
+    let hasMore = true
+
+    // Keep fetching followers in batches until none left
+    while (hasMore) {
+      const options: PingpplFollowQueryOptions = {
+        skip,
+        limit: batchSize,
+        orderBy: 'createdAt',
+        orderDirection: 'desc',
+        eventNameFollowed,
+        eventSender,
+        followSender: null,
+        requestingPrimaryWallet: requestingPrimaryWallet ?? null
+      }
+
+      const followers = await fetchAllPingpplFollowsFromDB(options)
+      
+      if (followers.length === 0) {
+        hasMore = false
+        break
+      }
+
+      // Create notifications in parallel for better performance
+      await Promise.all(
+        followers.map(follow => 
+          createEmoteNotifInDB({
+            notifType,
+            notifDataID,
+            receiverSymbol: follow.followSender,
+            initialNotifData
+          })
+        )
+      )
+
+      skip += batchSize
+      hasMore = followers.length === batchSize
+    }
+  } catch (error) {
+    console.error('Error notifying followers:', error)
+    // Optionally throw or handle error
+  }
+}

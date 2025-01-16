@@ -7,6 +7,11 @@ import { UserV2Model } from '../models/user-v2.model'
 import { getMappingListOfWalletToUserToken, getUserTokenWithDisplayName } from './user-v2.service'
 import { mapCurrentlyResponse } from '../util/currentlyUtil'
 import { createPlaceInDB, fetchPlaceFromDB, updatePlaceInDB } from './place.service'
+import { SavedPersonModel } from '../models/saved-person.model'
+import { createDefinedEventInDB } from './defined-event.service'
+import { SAVED_SYMBOL_TYPES } from '../util/definedEventUtil'
+import { NOTIF_TYPE } from '../models/emote-notif.model'
+import { notifyFollowersOfEvent } from '../services/pingppl-follow.service'
 
 
 export async function createCurrentlyInDB(currentlyData: Partial<CurrentlyRequest>): Promise<CurrentlyResponse | null> {
@@ -41,6 +46,36 @@ export async function createCurrentlyInDB(currentlyData: Partial<CurrentlyReques
 
     const senderUserDoc = await UserV2Model.findOne({ primaryWallet: createdCurrently?.senderPrimaryWallet })
     const senderUserWithDisplayName = await getUserTokenWithDisplayName(senderUserDoc, currentlyData.senderPrimaryWallet as string)
+
+    // Only notify followers if there's a place
+    if (currentlyBuildData.place) {
+      notifyFollowersOfEvent(
+        currentlyBuildData.place.text,
+        currentlyBuildData.senderPrimaryWallet,
+        NOTIF_TYPE.CURRENTLY_SHARED,
+        createdCurrently._id.toString(),
+        mapCurrentlyResponse(createdCurrently, senderUserWithDisplayName),
+        currentlyBuildData.senderPrimaryWallet,
+      )
+    }
+
+    // Notify followers for each tag
+    if (currentlyBuildData.wantOthersToKnowTags?.length > 0) {
+      Promise.all(
+        currentlyBuildData.wantOthersToKnowTags.map(tag =>
+          notifyFollowersOfEvent(
+            tag.tag,
+            currentlyBuildData.senderPrimaryWallet,
+            NOTIF_TYPE.CURRENTLY_SHARED,
+            createdCurrently._id.toString(),
+            mapCurrentlyResponse(createdCurrently, senderUserWithDisplayName),
+            currentlyBuildData.senderPrimaryWallet,
+          )
+        )
+      ).catch(error => {
+        console.error('Error sending notifications:', error)
+      })
+    }
 
     return createdCurrently ? mapCurrentlyResponse(createdCurrently, senderUserWithDisplayName) : null
   } catch (error) {
@@ -81,7 +116,7 @@ export async function fetchCurrentlyFromDB({
 
 export async function fetchAllCurrentlyFromDB(options: CurrentlyQueryOptions): Promise<CurrentlyResponse[]> {
   try {
-    const { skip, limit, orderBy, search, senderPrimaryWallet, requestingPrimaryWallet, anyActiveField, placeName, anyActivePlace } = options
+    const { skip, limit, orderBy, search, senderPrimaryWallet, requestingPrimaryWallet, anyActiveField, placeName, anyActivePlace, filterBySavedPeopleOfRequestingUser } = options
     const orderDirection = options.orderDirection === 'asc' ? 1 : -1
     const currentTime = new Date()
 
@@ -93,20 +128,42 @@ export async function fetchAllCurrentlyFromDB(options: CurrentlyQueryOptions): P
     // Filter Options
     const filterOptions: FilterQuery<CurrentlyDocument>[] = []
 
-    if (senderPrimaryWallet) {
+    if (filterBySavedPeopleOfRequestingUser) {
+      // Fetch all saved people for the requesting user
+      const savedPeople = await SavedPersonModel.find({ 
+        savedBy: requestingPrimaryWallet 
+      })
+      
+      const savedWallets = savedPeople.map(sp => sp.primaryWalletSaved)
+      
+      filterOptions.push({
+        senderPrimaryWallet: { $in: savedWallets }
+      })
+    } else if (senderPrimaryWallet) {
       filterOptions.push({
         $or: [
           { senderPrimaryWallet: { $regex: new RegExp("^" + senderPrimaryWallet + "$", 'iu') } },
         ],
       })
     }
+
     if (search) {
+      // Get saved people for requesting user
+      const savedPeople = await SavedPersonModel.find({ 
+        savedBy: requestingPrimaryWallet 
+      })
+      
+      // Just use saved people's wallets for initial filtering
+      const matchingWallets = savedPeople.map(sp => sp.primaryWalletSaved)
+      
       filterOptions.push({
         $or: [
+          { 'status.text': { $regex: new RegExp(search, 'iu') } },
+          { 'place.text': { $regex: new RegExp(search, 'iu') } },
+          { 'wantOthersToKnowTags.tag': { $regex: new RegExp(search, 'iu') } },
           { senderPrimaryWallet: { $regex: new RegExp(search, 'iu') } },
-          // TODO: tbh place would be best to search by here
-          { status: { $regex: new RegExp(search, 'iu') } },
-        ],
+          { senderPrimaryWallet: { $in: matchingWallets } }
+        ]
       })
     }
 
@@ -185,7 +242,7 @@ export async function fetchAllCurrentlyFromDB(options: CurrentlyQueryOptions): P
     const currentlyDocs = await CurrentlyModel.aggregate([
       {
         $sort: {
-          updatedAt: -1 // Assuming 'updatedAt' is the field that indicates the most recent record
+          updatedAt: -1
         }
       },
       // if anyActivePlace or anyActiveField is true, we need to only fetch one record per senderPrimaryWallet AND it should be the most recent one only
@@ -202,19 +259,53 @@ export async function fetchAllCurrentlyFromDB(options: CurrentlyQueryOptions): P
         }
       ] : []),
       { $match: filterQuery },
-          // above filterOptions OR gets records with ANY active tags. This filter here is stage and not part of filterOptions is what removes tags from SOLO records that are NOT ACTIVE
+      // First handle anyActiveField filtering of tags
       ...(anyActiveField ? [{
         $addFields: {
           wantOthersToKnowTags: {
             $filter: {
               input: "$wantOthersToKnowTags",
-              as: "item",
+              as: "tag",
               cond: {
                 $lt: [
                   currentTime,
-                  { $add: ['$$item.updatedDurationAt', '$$item.duration'] }
+                  { $add: ['$$tag.updatedDurationAt', '$$tag.duration'] }
                 ]
               }
+            }
+          },
+          place: {
+            $cond: {
+              if: {
+                $and: [
+                  { $ne: ["$place", null] },
+                  {
+                    $lt: [
+                      currentTime,
+                      { $add: ['$place.updatedDurationAt', '$place.duration'] }
+                    ]
+                  }
+                ]
+              },
+              then: "$place",
+              else: null
+            }
+          },
+          status: {
+            $cond: {
+              if: {
+                $and: [
+                  { $ne: ["$status", null] },
+                  {
+                    $lt: [
+                      currentTime,
+                      { $add: ['$status.updatedDurationAt', '$status.duration'] }
+                    ]
+                  }
+                ]
+              },
+              then: "$status",
+              else: null
             }
           }
         }
@@ -236,8 +327,26 @@ export async function fetchAllCurrentlyFromDB(options: CurrentlyQueryOptions): P
       senderPrimaryWallet: 'senderUser',
     }
     const userWithDisplayNameMap = await getMappingListOfWalletToUserToken(currentlyDocs, fieldMapping, requestingPrimaryWallet)
+    
+    // If searching, we need to do an additional filter for calculatedDisplayName
+    // since it's generated at runtime and can't be queried in the DB
+    let processedDocs = currentlyDocs
+    if (search) {
+      processedDocs = currentlyDocs.filter(doc => {
+        const senderUser = userWithDisplayNameMap[doc.senderPrimaryWallet]
+        return !senderUser || 
+               senderUser.calculatedDisplayName.toLowerCase().includes(search.toLowerCase()) ||
+               senderUser.chosenPublicName.toLowerCase().includes(search.toLowerCase()) ||
+               doc.senderPrimaryWallet.toLowerCase().includes(search.toLowerCase()) ||
+               (doc.status?.text && doc.status.text.toLowerCase().includes(search.toLowerCase())) ||
+               (doc.place?.text && doc.place.text.toLowerCase().includes(search.toLowerCase())) ||
+               (doc.wantOthersToKnowTags?.some((tag: CurrentlyTag) => 
+                 tag.tag.toLowerCase().includes(search.toLowerCase())
+               ))
+      })
+    }
   
-    return currentlyDocs.map(doc => {
+    return processedDocs.map(doc => {
       const senderUser = userWithDisplayNameMap[doc.senderPrimaryWallet]
       return mapCurrentlyResponse(doc, senderUser) as CurrentlyResponse
     })
@@ -273,16 +382,46 @@ export async function updateCurrentlyInDB(
     updates.forEach(update => {
       switch (update.updateType) {
         case CurrentlyUpdateTypes.EDIT_PLACE_TEXT:
+
+          if (update.shouldSavePlaceOnShare) {
+            createDefinedEventInDB({
+              eventCreator: requestingPrimaryWallet,
+              eventName: update.newValue.text,
+              eventDescription: null,
+              savedSymbolTypes: [SAVED_SYMBOL_TYPES.CURRENTLY, SAVED_SYMBOL_TYPES.PLACE],
+            })
+          }
+
           // rn set up so user cannot edit a field, unless it already exists, so that avoids null errors
           filteredCurrently.place.text = update.newValue
           break
 
         case CurrentlyUpdateTypes.EDIT_PLACE_DURATION:
+
+          if (update.shouldSavePlaceOnShare) {
+            createDefinedEventInDB({
+              eventCreator: requestingPrimaryWallet,
+              eventName: update.newValue.text,
+              eventDescription: null,
+              savedSymbolTypes: [SAVED_SYMBOL_TYPES.CURRENTLY, SAVED_SYMBOL_TYPES.PLACE],
+            })
+          }
+
           filteredCurrently.place.duration = update.newValue
           filteredCurrently.place.updatedDurationAt = new Date()
           break
 
         case CurrentlyUpdateTypes.NEW_PLACE:
+
+          if (update.shouldSavePlaceOnShare) {
+            createDefinedEventInDB({
+              eventCreator: requestingPrimaryWallet,
+              eventName: update.newValue.text,
+              eventDescription: null,
+              savedSymbolTypes: [SAVED_SYMBOL_TYPES.CURRENTLY, SAVED_SYMBOL_TYPES.PLACE],
+            })
+          }
+
           filteredCurrently.place = { text: update.newValue.text, duration: update.newValue.duration, updatedDurationAt: new Date() }
           break
 
@@ -344,6 +483,54 @@ export async function updateCurrentlyInDB(
     // Step 3: Create a new record with the merged data
     const newCurrentlyRecord = CurrentlyModel.build((filteredCurrently as CurrentlyDocument))
     const createdCurrently = await CurrentlyModel.create(newCurrentlyRecord)
+
+    const senderUserDoc = await UserV2Model.findOne({ primaryWallet: createdCurrently?.senderPrimaryWallet })
+    const senderUserWithDisplayName = await getUserTokenWithDisplayName(senderUserDoc, createdCurrently.senderPrimaryWallet as string)
+
+    // Notify for place changes
+    if (updates.some(update => 
+      [CurrentlyUpdateTypes.NEW_PLACE, CurrentlyUpdateTypes.EDIT_PLACE_TEXT, CurrentlyUpdateTypes.EDIT_PLACE_DURATION].includes(update.updateType)
+    ) && filteredCurrently.place) {
+      notifyFollowersOfEvent(
+        filteredCurrently.place.text,
+        filteredCurrently.senderPrimaryWallet,
+        NOTIF_TYPE.CURRENTLY_SHARED,
+        createdCurrently._id.toString(),
+        mapCurrentlyResponse(createdCurrently, senderUserWithDisplayName),
+        requestingPrimaryWallet,
+      )
+    }
+
+    // Notify for tag changes
+    const tagUpdates = updates.filter(update => 
+      [CurrentlyUpdateTypes.NEW_TAG, CurrentlyUpdateTypes.EDIT_TAG_TEXT, CurrentlyUpdateTypes.EDIT_TAG_DURATION].includes(update.updateType)
+    )
+
+    if (tagUpdates.length > 0 && filteredCurrently.wantOthersToKnowTags?.length > 0) {
+      // Get modified tags by comparing with update targets
+      const modifiedTags = filteredCurrently.wantOthersToKnowTags.filter((tag: CurrentlyTag) =>
+        tagUpdates.some(update => 
+          update.target === tag.tag || // For edits
+          (update.updateType === CurrentlyUpdateTypes.NEW_TAG && update.newValue.tag === tag.tag) // For new tags
+        )
+      )
+
+      // Notify for each modified tag
+      Promise.all(
+        modifiedTags.map((tag: CurrentlyTag) =>
+          notifyFollowersOfEvent(
+            tag.tag,
+            filteredCurrently.senderPrimaryWallet,
+            NOTIF_TYPE.CURRENTLY_SHARED,
+            createdCurrently._id.toString(),
+            mapCurrentlyResponse(createdCurrently, senderUserWithDisplayName),
+            requestingPrimaryWallet,
+          )
+        )
+      ).catch(error => {
+        console.error('Error sending notifications:', error)
+      })
+    }
 
     return createdCurrently
   } catch (error) {

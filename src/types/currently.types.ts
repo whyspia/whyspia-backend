@@ -46,12 +46,14 @@ export interface CurrentlyQueryOptions {
   anyActiveField?: boolean
   placeName?: string
   anyActivePlace?: boolean
+  filterBySavedPeopleOfRequestingUser?: boolean
 }
 
 export type CurrentlyUpdate = {
   updateType: string
   newValue?: any
   target?: string
+  shouldSavePlaceOnShare?: boolean
 }
 
 export const CurrentlyUpdateTypes = {

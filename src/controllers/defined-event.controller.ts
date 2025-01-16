@@ -64,10 +64,10 @@ export async function fetchAllDefinedEvents(req: Request, res: Response) {
     const orderBy = req.query.orderBy as keyof DefinedEventResponse
     const orderDirection =
       (req.query.orderDirection as string | undefined) ?? 'desc'
-    // const search = (req.query.search as string) || null
     const eventCreator = (req.query.eventCreator as string) || null
     const eventName = (req.query.eventName as string) || null
     const search = (req.query.search as string) || null
+    const savedSymbolTypes = (req.query.savedSymbolTypes as string || '').split(',').filter(Boolean)
 
     const requestingPrimaryWallet = decodedAccount?.primaryWallet
 
@@ -80,6 +80,7 @@ export async function fetchAllDefinedEvents(req: Request, res: Response) {
       eventCreator,
       eventName,
       requestingPrimaryWallet,
+      savedSymbolTypes
     }
 
     const definedEvents = await fetchAllDefinedEventsFromDB(options)

@@ -19,8 +19,8 @@ export async function getContextOfEmote(inputEmote: EmoteResponse | null, emoteI
   
   const inputEmoteFinal = inputEmote ?? inputEmoteFromID
 
-  if (inputEmoteFinal?.receiverSymbols.includes(EMOTE_CONTEXTS.PINGPPL)) {
-    return EMOTE_CONTEXTS.PINGPPL
+  if (inputEmoteFinal?.receiverSymbols.includes(EMOTE_CONTEXTS.NOTIF)) {
+    return EMOTE_CONTEXTS.NOTIF
   }
 
   // find and loop through all emotes at same timestamp as input emote (or whatever else emote data identifies the context)
@@ -82,10 +82,13 @@ export async function getContextOfNotif(inputEmote: EmoteResponse | null, notifT
     return await getContextOfEmote(inputEmote, null)
   } else {
     if (notifType === NOTIF_TYPE.PINGPPL_FOLLOW || notifType === NOTIF_TYPE.PINGPPL_SENTEVENT) {
-      return EMOTE_CONTEXTS.PINGPPL
+      return EMOTE_CONTEXTS.NOTIF
     }
     if (notifType === NOTIF_TYPE.TAU_SENT) {
       return EMOTE_CONTEXTS.TAU
+    }
+    if (notifType === NOTIF_TYPE.CURRENTLY_SHARED) {
+      return EMOTE_CONTEXTS.CURRENTLY
     }
   }
 
