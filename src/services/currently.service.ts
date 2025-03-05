@@ -364,7 +364,7 @@ export async function updateCurrentlyInDB(
   try {
     // Step 1: Fetch the existing record
     // frontend should handle logic of if last currently expired and if so, use create route instead of update route
-    const existingCurrently = await CurrentlyModel.findOne({}).sort({ createdAt: -1 }).exec() as any
+    const existingCurrently = await CurrentlyModel.findOne({ senderPrimaryWallet: requestingPrimaryWallet }).sort({ createdAt: -1 }).exec() as any
 
     if (!existingCurrently) {
       throw new Error('existing Currently record to update not found')
