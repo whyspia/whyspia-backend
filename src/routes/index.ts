@@ -10,6 +10,7 @@ import { pingpplContextRouter } from './pingppl-context'
 import { tauRouter } from './tau'
 import { savedPersonRouter } from './saved-person'
 import { currentlyRouter } from './currently'
+import { vibecampTopicRouter } from './vibecamp-topic'
 
 const routes = Router()
 
@@ -24,5 +25,6 @@ routes.use('/pingppl', pingpplContextRouter)
 routes.use('/tau', tauRouter)
 routes.use('/saved-person', savedPersonRouter)
 routes.use('/currently', currentlyRouter)
+routes.use('/vibecamp-topic', vibecampTopicRouter)
 
 export { routes }

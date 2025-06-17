@@ -5,11 +5,12 @@ import dotenv from 'dotenv'
 dotenv.config()
 import config from 'config'
 import express from 'express'
-// import { Server } from 'socket.io'
+import { Server } from 'socket.io'
 
 import { connectMongoDB } from './db/mongodb'
 import { requestLogger, setCorrelationId } from './middleware'
 import { routes } from './routes'
+import { createVibecampTopicInDB, deleteVibecampTopicFromDB } from './services/vibecamp-topic.service'
 
 const CLIENT_HOST_DOMAIN = config.get<string>('client.hostDomain')
 
@@ -46,70 +47,54 @@ app.use(routes)
 
 const port: number = config.get('server.port')
 const server = app.listen(port, () => {
-  console.log(`Server listing at port ${port}`)
+  console.log(`Server listening at port ${port}`)
 })
 
-// socket.io setup
-// const io = new Server(server, {
-//   cors: {
-//     origin: getFrontendURL()
-//   }
-// })
+// Initialize Socket.IO with the existing server
+const io = new Server(server, {
+  cors: {
+    origin: allowedOrigins,
+    credentials: CLIENT_HOST_DOMAIN.includes('localhost') || CLIENT_HOST_DOMAIN.includes('whyspia.com'),
+  }
+})
 
-// interface UserDisconnectTimers {
-//   [userId: string]: NodeJS.Timeout;
-// }
-// const userDisconnectTimers: UserDisconnectTimers = {} // Data structure to store user disconnects based on their userID as key and a timer/timeout for the value that was created on disconnect. Good to store this bc then can cancel it if user reconnects before 10 minutes is up
+// Socket.IO event handlers
+io.on('connection', (socket) => {
+  console.log('Client connected')
 
-// Listen for Socket.IO connections
-// socket here is that one particular socket associated with that specific client/user
+  socket.on('disconnect', () => {
+    console.log('Client disconnected')
+  })
 
-// on connect - we just check if there are any detected user disconnects for this user and if so, delete them so disconnect emote is not sent - bc if we just reconnected in such a short amount of time, no need to say we disconnected (at least that is reasoning rn)
-// io.on('connection', (socket) => {
-//   console.log('new user connected through socketio')
+  // Handle new topic creation
+  socket.on('newTopic', async (topic) => {
+    try {
+      // Save topic to database
+      const savedTopic = await createVibecampTopicInDB(topic)
+      // Broadcast the new topic to all connected clients
+      io.emit('topicCreated', savedTopic)
+    } catch (error) {
+      console.error('Error saving topic:', error)
+      socket.emit('error', 'Failed to save topic')
+    }
+  })
 
-//   const bearerHeaderValue = socket.handshake.auth.token
-//   const [, jwt] = bearerHeaderValue.split(' ')
-//   const userID = decodeAuthToken(jwt) as string
-//   if (userDisconnectTimers[userID]) {
-//     clearTimeout(userDisconnectTimers[userID]) // Cancel the timer if user reconnects
-//     delete userDisconnectTimers[userID]
-//   }
+  // Handle topic deletion
+  socket.on('deleteTopic', async (topicId) => {
+    try {
+      // Delete topic from database
+      const deletedTopic = await deleteVibecampTopicFromDB(topicId)
+      if (deletedTopic) {
+        // Broadcast the deleted topic ID to all connected clients
+        io.emit('topicDeleted', topicId)
+      } else {
+        socket.emit('error', 'Topic not found')
+      }
+    } catch (error) {
+      console.error('Error deleting topic:', error)
+      socket.emit('error', 'Failed to delete topic')
+    }
+  })
+})
 
-//   // Listen for chat messages
-//   socket.on('chat message', (msg) => {
-//     console.log('Message: ' + msg)
-//     // Broadcast the message to all connected clients
-//     io.emit('chat message', msg)
-//   })
 
-//   socket.on("reconnect", () => {
-//     console.log('reconnect inside connection')
-//   })
-
-//   // Listen for disconnections - this is called by socketio itself in multiple scenarios - so, often triggered by not-our-code
-//   socket.on('disconnect', () => {
-//     console.log('a user disconnected from socketio')
-
-//     const bearerHeaderValue = socket.handshake.auth.token
-//     const [, jwt] = bearerHeaderValue.split(' ')
-//     const userID = decodeAuthToken(jwt) as string
-//     userDisconnectTimers[userID] = setTimeout(async () => {
-//       // If no new connection after 10 minutes, send emote saying this user is offline in parallel
-//       const userToken = await UserTokenModel.findById(userID)
-//       const requestData = {
-//         // NOTE: this could possibly be null is rare scenarios and causes issues - just remember
-//         senderPrimaryWallet: userToken?.primaryWallet,
-//         receiverSymbols: [EMOTE_CONTEXTS.PARALLEL],
-//         sentSymbols: ['im offline'],
-//       }
-//       // createEmoteInDB(requestData)
-//       console.log('SENT EMOTE THAT USER IS NO LONGER ONLINE ON PARALLEL')
-//       delete userDisconnectTimers[userID]
-//     }, 30000) // 600000 is 10 minutes in milliseconds - so function is called 10 minutes after socketio disconnect
-//   })
-// })
-
-// io.on("reconnect", () => {
-//   console.log('reconnect outside connection')
-// })
